@@ -9,7 +9,8 @@
     "start": "node dist/index.js",
     "dev": "babel --out-dir=dist --watch src",
     "transpile": "mkdir -p dist && babel src/index.js > dist/index.js",
-    "prepublish": "npm run transpile"
+    "prepublish": "npm run transpile",
+    "preview-fonts": "babel src/preview-fonts.js --out-file dist/preview-fonts.js && node dist/preview-fonts.js"
   },
   "license": "MIT",
   "type": "module",
