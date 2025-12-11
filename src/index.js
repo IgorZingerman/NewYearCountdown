@@ -288,7 +288,8 @@ if (process.platform === 'darwin') {
     // Handle uncaught exceptions
     process.on('uncaughtException', (error) => {
       cleanup();
-      throw error;
+      console.error(`[ERROR] Uncaught exception: ${error.message}`);
+      process.exit(1);
     });
   } catch (error) {
     console.error(`[WARN] Failed to initialize screen saver prevention: ${error.message}`);
