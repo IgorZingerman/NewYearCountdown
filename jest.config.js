@@ -6,7 +6,10 @@ export default {
   },
   testMatch: ['**/__tests__/**/*.test.js'],
   collectCoverageFrom: [
-    'src/**/*.js',
+    'src/cli/**/*.js',
+    'src/lib/**/*.js',
+    'src/hooks/**/*.js',
+    'src/components/**/*.{js,jsx}',
     '!src/**/__tests__/**',
     '!src/**/*.test.js',
   ],

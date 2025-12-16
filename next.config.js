@@ -4,6 +4,8 @@ const nextConfig = {
   images: {
     unoptimized: true, // For sprite sheets and static assets
   },
+  // Next.js uses SWC by default, not Babel
+  // Babel config is in .babel/ directory for CLI builds only
 }
 
-module.exports = nextConfig
+export default nextConfig

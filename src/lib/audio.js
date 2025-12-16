@@ -69,7 +69,7 @@ export function handleCountdownAnnouncements(hours, minutes, seconds) {
 
   // 20 minute notice
   if (thirtyMinuteNotice === false && hours === 0 && minutes === 20 && seconds === 0) {
-    thirtyMinuteNotice = false;
+    thirtyMinuteNotice = true;
     speak('20 minutes to New Year countdown begins!');
   }
 

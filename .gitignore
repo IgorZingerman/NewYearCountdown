@@ -2,3 +2,11 @@ node_modules
 music/*.mp3
 dist
 coverage
+
+# Next.js
+.next
+out
+*.log
+
+# OS
+.DS_Store

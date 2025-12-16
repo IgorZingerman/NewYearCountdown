@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { loadConfig, saveConfig } from '../lib/config';
+import { loadConfig, saveConfig, DEFAULT_CONFIG } from '../lib/config';
 
 export function useConfig() {
   const [config, setConfig] = useState(null);
@@ -20,12 +20,12 @@ export function useConfig() {
   };
 
   const resetConfig = () => {
-    const defaultConfig = loadConfig();
-    // Reset to defaults by clearing localStorage
+    // Clear localStorage first to remove any stored config
     if (typeof window !== 'undefined') {
       localStorage.removeItem('countdown-config');
     }
-    setConfig(defaultConfig);
+    // Use DEFAULT_CONFIG directly to ensure true defaults are loaded
+    setConfig(DEFAULT_CONFIG);
   };
 
   return { config, loading, updateConfig, resetConfig };
