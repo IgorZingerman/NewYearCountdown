@@ -73,6 +73,7 @@ export default function HomePage() {
           seconds={countdown.seconds}
           isExpired={countdown.isExpired}
           targetDate={config.targetDate}
+          celebrationMessage={config.celebrationMessage}
           rotateFonts={config.font?.rotate}
           fontRotationOptions={config.font?.rotationOptions}
           defaultFont={config.font?.name}

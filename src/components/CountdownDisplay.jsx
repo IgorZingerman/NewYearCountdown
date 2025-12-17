@@ -19,6 +19,7 @@ export default function CountdownDisplay({
   seconds,
   isExpired,
   targetDate,
+  celebrationMessage = "🎉 Happy New Year! 🎉",
   rotateFonts = false,
   fontRotationOptions = [],
   defaultFont = 'huge',
@@ -90,7 +91,7 @@ export default function CountdownDisplay({
     return (
       <div className="countdown-container" style={{ textAlign: 'center', padding: '2rem' }}>
         <h1 style={{ fontSize: '4rem', color: displayColor, marginBottom: '1rem' }}>
-          🎉 Happy New Year! 🎉
+          {celebrationMessage}
         </h1>
         <p style={{ fontSize: '1.5rem', color: '#cccccc' }}>
           Welcome to {new Date(targetDate).getFullYear()}!
@@ -130,11 +131,15 @@ export default function CountdownDisplay({
         {timeString}
       </div>
       <div style={{ marginTop: '2rem', fontSize: '1.2rem', color: '#cccccc' }}>
-        Until {new Date(targetDate).toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        })}
+        Until {(() => {
+          const date = new Date(targetDate);
+          // Use UTC date components to avoid timezone conversion issues
+          // This ensures the date displayed matches what the user selected
+          const year = date.getUTCFullYear();
+          const month = date.toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' });
+          const day = date.getUTCDate();
+          return `${month} ${day}, ${year}`;
+        })()}
       </div>
     </div>
   );

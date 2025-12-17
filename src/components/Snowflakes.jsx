@@ -6,7 +6,7 @@ import { gsap } from 'gsap';
 export default function Snowflakes({
   enabled = true,
   count = 40,
-  speed = 350,
+  speed = 4500,
   options = ["❄", "❅", "❆", "✻", "✼", "✽", "✾", "✿", "❀", "❁"],
   color = "white",
   rotateColors = false,
@@ -26,13 +26,29 @@ export default function Snowflakes({
     const snowflakes = [];
 
     // Create snowflake elements with more natural properties
-    for (let i = 0; i < Math.min(count, 200); i++) {
+    // Use grid-based distribution with jitter for more even spacing
+    const numSnowflakes = Math.min(count, 200);
+    const gridCols = Math.ceil(Math.sqrt(numSnowflakes * (windowWidth / windowHeight)));
+    const gridRows = Math.ceil(numSnowflakes / gridCols);
+    const cellWidth = windowWidth / gridCols;
+    const cellHeight = (windowHeight + 300) / gridRows; // Extra height for off-screen start
+    
+    // Store grid info for reset callback
+    const gridInfo = { gridCols, cellWidth };
+    
+    for (let i = 0; i < numSnowflakes; i++) {
       const snowflake = document.createElement('div');
       snowflake.className = 'snowflake';
       snowflake.textContent = options[Math.floor(Math.random() * options.length)];
       
-      const startX = Math.random() * windowWidth;
-      const startY = -20 - Math.random() * 200; // Start at varying heights
+      // Grid-based positioning with random jitter for natural look
+      const gridCol = i % gridCols;
+      const gridRow = Math.floor(i / gridCols);
+      const jitterX = (Math.random() - 0.5) * cellWidth * 0.6; // 60% jitter within cell
+      const jitterY = (Math.random() - 0.5) * cellHeight * 0.6;
+      
+      const startX = (gridCol * cellWidth) + (cellWidth / 2) + jitterX;
+      const startY = -300 - (gridRow * cellHeight) - (cellHeight / 2) + jitterY; // Start well above screen
       
       // More natural speed variation (smaller flakes fall slower)
       const size = Math.random() * 0.6 + 0.4; // 0.4 to 1.0
@@ -43,8 +59,8 @@ export default function Snowflakes({
       const windStrength = (Math.random() - 0.5) * 1.5; // -0.75 to 0.75
       const windVariation = Math.random() * 0.3 + 0.1; // How much wind varies
       
-      // Opacity based on size (smaller = more transparent)
-      const opacity = 0.4 + (size * 0.4); // 0.4 to 0.8
+      // Opacity based on size (smaller = more transparent) - reduced for sparser look
+      const opacity = 0.3 + (size * 0.3); // 0.3 to 0.6 (reduced from 0.4-0.8)
       
       snowflake.style.position = 'absolute';
       snowflake.style.left = `${startX}px`;
@@ -91,11 +107,13 @@ export default function Snowflakes({
         duration: fallDuration,
         ease: 'power1.out', // Natural deceleration
         onComplete: () => {
-          // Reset position when off-screen
-          const newX = Math.random() * windowWidth;
+          // Reset position when off-screen - use grid-based distribution again
+          const resetGridCol = Math.floor(Math.random() * gridInfo.gridCols);
+          const resetJitterX = (Math.random() - 0.5) * gridInfo.cellWidth * 0.6;
+          const newX = (resetGridCol * gridInfo.cellWidth) + (gridInfo.cellWidth / 2) + resetJitterX;
           gsap.set(element, {
             x: newX,
-            y: -20 - Math.random() * 100,
+            y: -300 - Math.random() * 200, // Start well above screen
           });
         },
       });

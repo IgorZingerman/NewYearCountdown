@@ -1,6 +1,7 @@
 export default {
   "targetDate": "2026-01-01T00:00:00.000Z",
   "description": "New Year countdown configuration",
+  "celebrationMessage": "🎉 Happy New Year! 🎉",
   
   "font": {
     "rotate": false,
@@ -33,7 +34,7 @@ export default {
   "snowflakes": {
     "enabled": true,
     "count": 40,
-    "speed": 350,
+    "speed": 4500,
     "options": ["❄", "❅", "❆", "✻", "✼", "✽", "✾", "✿", "❀", "❁"],
     "color": {
       "rotate": true,

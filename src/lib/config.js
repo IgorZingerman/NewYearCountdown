@@ -2,6 +2,7 @@
 const DEFAULT_CONFIG = {
   targetDate: "2026-01-01T00:00:00.000Z",
   description: "New Year countdown configuration",
+  celebrationMessage: "🎉 Happy New Year! 🎉",
   
   font: {
     rotate: false,
@@ -34,7 +35,7 @@ const DEFAULT_CONFIG = {
   snowflakes: {
     enabled: true,
     count: 40,
-    speed: 350,
+    speed: 4500,
     options: ["❄", "❅", "❆", "✻", "✼", "✽", "✾", "✿", "❀", "❁"],
     color: {
       rotate: true,
@@ -98,6 +99,11 @@ export function validateConfig(config) {
     if (!isNaN(date.getTime())) {
       validated.targetDate = config.targetDate;
     }
+  }
+
+  // Validate celebrationMessage
+  if (config.celebrationMessage !== undefined && typeof config.celebrationMessage === "string") {
+    validated.celebrationMessage = config.celebrationMessage;
   }
 
   // Validate font settings

@@ -59,17 +59,206 @@ export default function SettingsForm() {
       </div>
 
       <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
-        {/* Target Date */}
+        {/* Target Date & Time */}
         <div style={{ marginBottom: '2rem' }}>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-            Target Date
+            Target Date & Time
+          </label>
+          
+          {/* Display current value */}
+          {localConfig.targetDate && (
+            <div style={{ 
+              marginBottom: '0.75rem', 
+              padding: '0.75rem', 
+              backgroundColor: '#1a1a1a', 
+              borderRadius: '0.25rem',
+              fontSize: '0.9rem',
+              color: '#ccc'
+            }}>
+              Current: {(() => {
+                const date = new Date(localConfig.targetDate);
+                return date.toLocaleString('en-US', { 
+                  weekday: 'long',
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                });
+              })()}
+            </div>
+          )}
+          
+          {/* Date and Time inputs */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#ccc' }}>
+                Date
+              </label>
+              <input
+                type="date"
+                value={localConfig.targetDate ? (() => {
+                  // Convert UTC date to local date for display
+                  const date = new Date(localConfig.targetDate);
+                  const year = date.getUTCFullYear();
+                  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+                  const day = String(date.getUTCDate()).padStart(2, '0');
+                  return `${year}-${month}-${day}`;
+                })() : ''}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    const currentDate = localConfig.targetDate ? new Date(localConfig.targetDate) : new Date();
+                    const [year, month, day] = e.target.value.split('-');
+                    // Create date in LOCAL time, preserving current LOCAL time
+                    const localDate = new Date(
+                      parseInt(year),
+                      parseInt(month) - 1,
+                      parseInt(day),
+                      currentDate.getHours(),
+                      currentDate.getMinutes(),
+                      currentDate.getSeconds()
+                    );
+                    // Convert to UTC for storage
+                    updateNested('targetDate', localDate.toISOString());
+                  }
+                }}
+                style={{ width: '100%', padding: '0.5rem', fontSize: '1rem' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#ccc' }}>
+                Time
+              </label>
+              <input
+                type="time"
+                value={localConfig.targetDate ? (() => {
+                  // Convert UTC time to local time for display
+                  const date = new Date(localConfig.targetDate);
+                  const hours = date.getHours().toString().padStart(2, '0');
+                  const minutes = date.getMinutes().toString().padStart(2, '0');
+                  return `${hours}:${minutes}`;
+                })() : ''}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    const currentDate = localConfig.targetDate ? new Date(localConfig.targetDate) : new Date();
+                    const [hours, minutes] = e.target.value.split(':');
+                    // Create date in LOCAL time, preserving current LOCAL date
+                    const localDate = new Date(
+                      currentDate.getFullYear(),
+                      currentDate.getMonth(),
+                      currentDate.getDate(),
+                      parseInt(hours),
+                      parseInt(minutes),
+                      0
+                    );
+                    // Convert to UTC for storage
+                    updateNested('targetDate', localDate.toISOString());
+                  }
+                }}
+                style={{ width: '100%', padding: '0.5rem', fontSize: '1rem' }}
+              />
+            </div>
+          </div>
+          
+          {/* Quick presets */}
+          <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => {
+                const now = new Date();
+                const newDate = new Date(
+                  now.getFullYear(),
+                  now.getMonth(),
+                  now.getDate(),
+                  now.getHours() + 1,
+                  0,
+                  0
+                );
+                updateNested('targetDate', newDate.toISOString());
+              }}
+              style={{ 
+                padding: '0.4rem 0.8rem', 
+                fontSize: '0.85rem', 
+                backgroundColor: '#333', 
+                color: '#fff', 
+                border: '1px solid #555',
+                borderRadius: '0.25rem',
+                cursor: 'pointer'
+              }}
+            >
+              +1 Hour
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const now = new Date();
+                const newDate = new Date(
+                  now.getFullYear(),
+                  now.getMonth(),
+                  now.getDate() + 1,
+                  0,
+                  0,
+                  0
+                );
+                updateNested('targetDate', newDate.toISOString());
+              }}
+              style={{ 
+                padding: '0.4rem 0.8rem', 
+                fontSize: '0.85rem', 
+                backgroundColor: '#333', 
+                color: '#fff', 
+                border: '1px solid #555',
+                borderRadius: '0.25rem',
+                cursor: 'pointer'
+              }}
+            >
+              Tomorrow Midnight
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const now = new Date();
+                const newDate = new Date(
+                  now.getFullYear() + 1,
+                  0,
+                  1,
+                  0,
+                  0,
+                  0
+                );
+                updateNested('targetDate', newDate.toISOString());
+              }}
+              style={{ 
+                padding: '0.4rem 0.8rem', 
+                fontSize: '0.85rem', 
+                backgroundColor: '#333', 
+                color: '#fff', 
+                border: '1px solid #555',
+                borderRadius: '0.25rem',
+                cursor: 'pointer'
+              }}
+            >
+              Next New Year
+            </button>
+          </div>
+        </div>
+
+        {/* Celebration Message */}
+        <div style={{ marginBottom: '2rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+            Celebration Message
           </label>
           <input
-            type="datetime-local"
-            value={localConfig.targetDate ? new Date(localConfig.targetDate).toISOString().slice(0, 16) : ''}
-            onChange={(e) => updateNested('targetDate', new Date(e.target.value).toISOString())}
+            type="text"
+            value={localConfig.celebrationMessage || '🎉 Happy New Year! 🎉'}
+            onChange={(e) => updateNested('celebrationMessage', e.target.value)}
+            placeholder="Enter your festive message"
             style={{ width: '100%', padding: '0.5rem', fontSize: '1rem' }}
           />
+          <p style={{ fontSize: '0.875rem', color: '#999', marginTop: '0.5rem' }}>
+            This message will display when the countdown reaches zero
+          </p>
         </div>
 
         {/* Font Settings */}
@@ -238,7 +427,7 @@ export default function SettingsForm() {
                 <input
                   type="number"
                   min="50"
-                  value={localConfig.snowflakes?.speed || 350}
+                  value={localConfig.snowflakes?.speed || 4500}
                   onChange={(e) => updateNested('snowflakes.speed', Number(e.target.value))}
                   style={{ width: '100%', padding: '0.5rem' }}
                 />
