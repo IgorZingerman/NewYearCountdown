@@ -5,6 +5,7 @@ import { useCountdown } from '../hooks/useCountdown';
 import { useAudio } from '../hooks/useAudio';
 import CountdownDisplay from '../components/CountdownDisplay';
 import Snowflakes from '../components/Snowflakes';
+import Fireworks from '../components/Fireworks';
 import Yeti from '../components/Yeti';
 import Scenery from '../components/Scenery';
 import Link from 'next/link';
@@ -45,8 +46,8 @@ export default function HomePage() {
       {/* Yeti Character */}
       <Yeti />
 
-      {/* Snowflakes */}
-      {config.snowflakes?.enabled && (
+      {/* Snowflakes - stop when countdown expires */}
+      {config.snowflakes?.enabled && !countdown.isExpired && (
         <Snowflakes
           enabled={config.snowflakes.enabled}
           count={config.snowflakes.count}
@@ -58,6 +59,9 @@ export default function HomePage() {
           colorRotationFrequency={config.snowflakes.color?.frequency}
         />
       )}
+
+      {/* Fireworks - show when countdown expires */}
+      {countdown.isExpired && <Fireworks />}
 
       {/* Countdown Display */}
       <div style={{
