@@ -8,6 +8,7 @@
     "build": "next build && cp .htaccess out/.htaccess 2>/dev/null || true",
     "export": "next build && cp .htaccess out/.htaccess 2>/dev/null || true",
     "build:static": "next build && cp .htaccess out/.htaccess 2>/dev/null || true",
+    "deploy": "./scripts/deploy.sh",
     "start": "next start",
     "lint": "next lint",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
