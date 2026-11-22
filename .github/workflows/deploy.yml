@@ -1,0 +1,166 @@
+name: Build and deploy
+
+# - Pull requests: lint, test and build only. No secrets are used.
+# - Push to main (i.e. a merged PR) or a manual run on main: the same build, then
+#   upload to the web host over SSH.
+#
+# Host details and the SSH key are stored as secrets of the "production" environment
+# (this repo is public, so none of them are in the code).
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-and-deploy-${{ github.ref }}
+  # Never cancel a running deploy half way through an upload
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Third-party actions are pinned to full commit SHAs (version in the comment).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+      - name: Check the build output
+        run: |
+          test -f out/index.html
+          test -f out/settings/index.html
+          test -f out/.htaccess
+
+      # Tar keeps dotfiles (.htaccess), which artifact upload would otherwise skip
+      - name: Package the site
+        run: tar -czf site.tgz -C out .
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site
+          path: site.tgz
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy:
+    name: deploy
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Secrets live in this environment, which is limited to the main branch
+    environment: production
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+      DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+    steps:
+      - name: Check configuration
+        run: |
+          missing=""
+          for v in DEPLOY_HOST DEPLOY_USER DEPLOY_PATH DEPLOY_URL DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing secrets in the 'production' environment:$missing"
+            exit 1
+          fi
+          # Refuse paths that could make --delete wipe more than the site folder
+          case "$DEPLOY_PATH" in
+            ""|"/"|"."|"./"|"~"|"~/"|*".."*)
+              echo "::error::DEPLOY_PATH is not a safe site folder"
+              exit 1 ;;
+          esac
+          # Only plain path characters (also keeps the remote check below injection-free)
+          if ! printf '%s' "$DEPLOY_PATH" | grep -Eq '^[A-Za-z0-9._/~-]+$'; then
+            echo "::error::DEPLOY_PATH contains unexpected characters"
+            exit 1
+          fi
+          case "$DEPLOY_URL" in
+            https://*) ;;
+            *) echo "::error::DEPLOY_URL must start with https://"; exit 1 ;;
+          esac
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: site
+
+      - name: Unpack the site
+        run: |
+          mkdir out
+          tar -xzf site.tgz -C out
+          # Web-readable permissions on the server (rsync -p carries these over)
+          find out -type d -exec chmod 755 {} +
+          find out -type f -exec chmod 644 {} +
+
+      - name: Set up SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          # Host key is pinned: the connection fails if the server's key differs
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          echo "RSYNC_SSH=ssh -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20" >> "$GITHUB_ENV"
+
+      - name: Check the remote folder exists
+        run: $RSYNC_SSH "$DEPLOY_USER@$DEPLOY_HOST" "test -d '$DEPLOY_PATH'"
+
+      # Server-managed folders are excluded so --delete can never remove them.
+      # --max-delete aborts if a deploy would remove more than a handful of files.
+      - name: Dry run (what would change)
+        run: |
+          rsync -rltpzn --itemize-changes --delete-after --max-delete=50 \
+            --exclude='/.well-known/' --exclude='/cgi-bin/' --exclude='/stats/' --exclude='/logs/' \
+            --exclude='.gitkeep' \
+            -e "$RSYNC_SSH" out/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
+
+      - name: Upload
+        run: |
+          rsync -rltpz --itemize-changes --delete-after --max-delete=50 \
+            --exclude='/.well-known/' --exclude='/cgi-bin/' --exclude='/stats/' --exclude='/logs/' \
+            --exclude='.gitkeep' \
+            -e "$RSYNC_SSH" out/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
+
+      # Proves the live site is serving the new build: its own JavaScript must load
+      - name: Verify the live site
+        run: |
+          base="${DEPLOY_URL%/}"
+          chunk=$(grep -o '_next/static/[^"]*\.js' out/index.html | head -n 1)
+          [ -n "$chunk" ] || { echo "::error::No JS chunk found in build"; exit 1; }
+          for attempt in 1 2 3 4 5; do
+            # A missing file on the host is answered with the homepage HTML (200),
+            # so check the content type as well as the status.
+            type=$(curl -s -o /dev/null -w '%{http_code} %{content_type}' "$base/$chunk" || true)
+            case "$type" in
+              "200 "*javascript*)
+                echo "Live site is serving the new build."
+                exit 0 ;;
+            esac
+            echo "Attempt $attempt: got '$type', retrying in 5s..."
+            sleep 5
+          done
+          echo "::error::The live site is not serving the new build"
+          exit 1
+
+      - name: Clean up the SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key ~/.ssh/known_hosts

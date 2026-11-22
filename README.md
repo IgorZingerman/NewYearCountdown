@@ -65,6 +65,30 @@ At 6 minutes to go the site tries to play `/music/TheFinalCountdown.mp3`. The tr
 
 The site is a **static export** (`output: 'export'` in `next.config.js`), so it runs on any plain Apache host. No Node.js is needed on the server (it runs fine on a PHP-only Apache host).
 
+### Automatic (GitHub Actions)
+
+`.github/workflows/deploy.yml` runs on every pull request and on every push to `main`:
+
+1. **build** (all PRs and `main`): `npm ci`, lint, tests, `npm run build`, then packages `out/`. No secrets are used.
+2. **deploy** (only `main`, i.e. after a merge): downloads the exact package that was just built and uploads it with `rsync` over SSH, then checks that the live site is serving the new build's JavaScript.
+
+Safety rails: the SSH host key is pinned; `rsync --delete` runs with `--max-delete=50`, so a deploy that would remove more than 50 files aborts; a dry run prints what would change before the real upload; `.well-known/`, `cgi-bin/`, `stats/` and `logs/` on the server are never touched; the folder must already exist; the job only runs on `main`, uses the `production` environment, and never runs for pull requests. Actions are pinned to full commit SHAs and the workflow has read-only repo permissions.
+
+**One-time setup.** The repo is public, so the host details and the key are secrets of the GitHub environment `production` (Settings → Environments), not files in the repo:
+
+| Secret | What it is |
+| --- | --- |
+| `DEPLOY_HOST` | SSH host of the web server |
+| `DEPLOY_USER` | SSH user that owns the site folder |
+| `DEPLOY_PATH` | the site folder on the server (must already exist) |
+| `DEPLOY_URL` | public site URL, `https://...` (used for the post-deploy check) |
+| `DEPLOY_SSH_KEY` | private half of a **dedicated** deploy key (not your personal key) |
+| `DEPLOY_KNOWN_HOSTS` | the server's host key line, e.g. from `ssh-keyscan -t ed25519 <host>` (verify the fingerprint) |
+
+Generate the key with `ssh-keygen -t ed25519 -N "" -C countdown-deploy -f ~/.ssh/countdown_deploy`, add the `.pub` half to the server user's `~/.ssh/authorized_keys`, and store the private half with `gh secret set DEPLOY_SSH_KEY --env production < ~/.ssh/countdown_deploy`. If a secret is missing the deploy job fails with a message naming it. To redeploy without a code change, run the workflow manually from the Actions tab on `main`.
+
+### Manual fallback
+
 ```bash
 cp .env.example .env     # fill in DEPLOY_HOST, DEPLOY_USER, DEPLOY_PATH (gitignored)
 npm run deploy           # builds, verifies out/, and generates an rsync command
@@ -72,7 +96,7 @@ npm run deploy           # builds, verifies out/, and generates an rsync command
 
 The script does **not** upload anything by itself. It prints the `rsync` command (and copies it to your clipboard on macOS) for you to run and enter your password.
 
-> ⚠️ The generated command uses `rsync --delete`: anything in the remote folder that is not in `out/` will be removed. Make sure the remote path only contains this site (or do a dry run first with `rsync -n`).
+> ⚠️ That generated command uses `rsync --delete` without the protections above: anything in the remote folder that is not in `out/` will be removed (including server-managed folders such as `.well-known/`). Do a dry run first with `rsync -n`.
 
 The `.htaccess` in the repo root handles HTTPS redirect and routing, and needs `mod_rewrite`. Details are in [scripts/README.md](scripts/README.md).
 
@@ -85,7 +109,8 @@ The `.htaccess` in the repo root handles HTTPS redirect and routing, and needs `
 - `src/cli/` - the original terminal (Ink) version, kept for reference (`npm run build:cli && npm run start:cli`)
 - `public/` - static files copied as-is into the export (e.g. `public/music/`)
 - `src/__tests__/` - Jest tests
-- `scripts/` - deploy script
+- `scripts/` - manual deploy script
+- `.github/workflows/` - CI and automatic deploy
 - `.cursor/skills/`, `AGENTS.md`, `CLAUDE.md` - guidance for AI coding agents
 
 ## Testing

@@ -41,7 +41,8 @@ Run `npm run lint`, `npm test` and `npm run build` before proposing a PR. The le
 | `public/` | Static files copied as-is into the export. `public/music/` holds the (gitignored) audio |
 | `eslint.config.mjs` | ESLint flat config; documents why `react-hooks/set-state-in-effect` is off |
 | `src/__tests__/` | Jest tests |
-| `scripts/deploy.sh` | Build + generates an `rsync` command (does not upload) |
+| `scripts/deploy.sh` | Manual fallback: build + generates an `rsync` command (does not upload) |
+| `.github/workflows/deploy.yml` | CI on PRs; automatic deploy to the host after a merge to `main` |
 | `.htaccess` | HTTPS redirect, SPA fallback, caching (copied into `out/` by the build) |
 
 All animated components are client components (`'use client'`) and must clean up in the effect return (kill GSAP tweens, cancel `requestAnimationFrame`, clear timers, remove listeners). Follow the existing cleanup patterns in `Snowflakes.jsx` and `Fireworks.jsx`.
@@ -75,9 +76,14 @@ location.reload();
 
 Run `localStorage.removeItem('countdown-config')` when done. Stop any dev server you start.
 
-## Deployment (only when the user asks)
+## Deployment
 
-`npm run deploy` builds and prints an `rsync -avz --delete` command; the user runs it and types their password. `--delete` removes remote files not in `out/`, so confirm the remote folder contents and do a dry run (`rsync -n`) first. Never run the real upload yourself without explicit approval.
+Deploys are automatic: `.github/workflows/deploy.yml` builds on every PR and, after a merge to `main`, uploads `out/` over SSH to the web host (see README → Deployment). Host, user, path, URL, SSH key and pinned host key are secrets of the GitHub environment `production`.
+
+- **Do not trigger a deploy (no manual workflow runs, no manual `rsync`) unless the user asks.** Merging to `main` is what deploys, so treat a merge as a production release.
+- Never print, log, commit or paste the secrets or the private key (`~/.ssh/countdown_deploy`, outside the repo). Do not put host details in files, commits or PR text. If you must reference them, use the secret names.
+- When changing the workflow, keep: actions pinned to full SHAs, `permissions: contents: read`, deploy only on `main`, pinned host key, the dry run, `--max-delete`, and the server-managed excludes. Test rsync flag changes against a local folder first. macOS ships `openrsync`, which lacks some flags (for example `--chmod`) that the Linux runner has.
+- `npm run deploy` (`scripts/deploy.sh`) is a manual fallback that only prints an `rsync --delete` command without those protections. Never run the real upload yourself without explicit approval, and do a dry run (`rsync -n`) first.
 
 ## Known issues
 
