@@ -72,7 +72,7 @@ The site is a **static export** (`output: 'export'` in `next.config.js`), so it 
 1. **build** (all PRs and `main`): `npm ci`, lint, tests, `npm run build`, then packages `out/`. No secrets are used.
 2. **deploy** (only `main`, i.e. after a merge): downloads the exact package that was just built and uploads it with `rsync` over SSH, then checks that the live site is serving the new build's JavaScript.
 
-Safety rails: the SSH host key is pinned; `rsync --delete` runs with `--max-delete=50`, so a deploy that would remove more than 50 files aborts; a dry run prints what would change before the real upload; `.well-known/`, `cgi-bin/`, `stats/` and `logs/` on the server are never touched; the folder must already exist; the job only runs on `main`, uses the `production` environment, and never runs for pull requests. Actions are pinned to full commit SHAs and the workflow has read-only repo permissions.
+Safety rails: the SSH host key is pinned; `rsync --delete` runs with `--max-delete=50`, so a deploy that would remove more than 50 files aborts; a dry run prints what would change before the real upload; `.well-known/`, `cgi-bin/`, `stats/`, `logs/`, `.dh-diag` and the two favicon files on the server are never touched; the folder must already exist; the job only runs on `main`, uses the `production` environment, and never runs for pull requests. Actions are pinned to full commit SHAs and the workflow has read-only repo permissions.
 
 **One-time setup.** The repo is public, so the host details and the key are secrets of the GitHub environment `production` (Settings → Environments), not files in the repo:
 
@@ -80,7 +80,7 @@ Safety rails: the SSH host key is pinned; `rsync --delete` runs with `--max-dele
 | --- | --- |
 | `DEPLOY_HOST` | SSH host of the web server |
 | `DEPLOY_USER` | SSH user that owns the site folder |
-| `DEPLOY_PATH` | the site folder on the server (must already exist) |
+| `DEPLOY_PATH` | the site folder, relative to the SSH login folder (must already exist), e.g. `countdown.potatolabs.com` |
 | `DEPLOY_URL` | public site URL, `https://...` (used for the post-deploy check) |
 | `DEPLOY_SSH_KEY` | private half of a **dedicated** deploy key (not your personal key) |
 | `DEPLOY_KNOWN_HOSTS` | the server's host key line, e.g. from `ssh-keyscan -t ed25519 <host>` (verify the fingerprint) |
