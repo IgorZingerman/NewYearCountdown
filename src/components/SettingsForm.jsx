@@ -41,17 +41,17 @@ function Field({ label, hint, children }) {
   );
 }
 
-function Check({ checked, onChange, children }) {
+function Check({ name, checked, onChange, children }) {
   return (
     <label style={styles.row}>
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <input name={name} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       {children}
     </label>
   );
 }
 
 /** A row of checkboxes to pick several of `options`; at least one stays picked. */
-function Picks({ label, options, picked, onChange }) {
+function Picks({ name, label, options, picked, onChange }) {
   const toggle = (option, on) => {
     const next = on ? options.filter((o) => o === option || picked.includes(o)) : picked.filter((o) => o !== option);
     if (next.length > 0) onChange(next);
@@ -62,7 +62,13 @@ function Picks({ label, options, picked, onChange }) {
       <div style={styles.pills}>
         {options.map((option) => (
           <label key={option} style={{ ...styles.row, marginBottom: 0, minWidth: '6rem' }}>
-            <input type="checkbox" checked={picked.includes(option)} onChange={(e) => toggle(option, e.target.checked)} />
+            <input
+              name={name}
+              value={option}
+              type="checkbox"
+              checked={picked.includes(option)}
+              onChange={(e) => toggle(option, e.target.checked)}
+            />
             {nameOf(option)}
           </label>
         ))}
@@ -71,9 +77,9 @@ function Picks({ label, options, picked, onChange }) {
   );
 }
 
-function Select({ value, options, onChange, ...rest }) {
+function Select({ name, value, options, onChange, ...rest }) {
   return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} style={styles.input} {...rest}>
+    <select name={name} value={value} onChange={(e) => onChange(e.target.value)} style={styles.input} {...rest}>
       {options.map((option) => (
         <option key={option} value={option}>
           {nameOf(option)}
@@ -130,6 +136,7 @@ export default function SettingsForm() {
         <Section title="Countdown">
           <Field label="Counting down to">
             <input
+              name="targetDate"
               type="datetime-local"
               required
               value={toDateTimeLocal(local.targetDate)}
@@ -155,6 +162,7 @@ export default function SettingsForm() {
 
           <Field label="Message at midnight" hint="Shown when the countdown reaches zero.">
             <input
+              name="celebrationMessage"
               type="text"
               value={local.celebrationMessage}
               onChange={(e) => setLocal((prev) => ({ ...prev, celebrationMessage: e.target.value }))}
@@ -167,6 +175,7 @@ export default function SettingsForm() {
         <Section title="The numbers">
           {local.font.rotate ? (
             <Picks
+              name="fontOptions"
               label="Fonts to cycle through"
               options={VALID_FONTS}
               picked={local.font.rotationOptions}
@@ -174,15 +183,16 @@ export default function SettingsForm() {
             />
           ) : (
             <Field label="Font">
-              <Select value={local.font.name} options={VALID_FONTS} onChange={(value) => set('font', 'name', value)} />
+              <Select name="font" value={local.font.name} options={VALID_FONTS} onChange={(value) => set('font', 'name', value)} />
             </Field>
           )}
-          <Check checked={local.font.rotate} onChange={(value) => set('font', 'rotate', value)}>
+          <Check name="fontRotate" checked={local.font.rotate} onChange={(value) => set('font', 'rotate', value)}>
             Change the font every few seconds
           </Check>
 
           {local.color.rotate ? (
             <Picks
+              name="colorOptions"
               label="Colours to cycle through"
               options={VALID_COLORS}
               picked={local.color.rotationOptions}
@@ -190,22 +200,23 @@ export default function SettingsForm() {
             />
           ) : (
             <Field label="Colour">
-              <Select value={local.color.value} options={VALID_COLORS} onChange={(value) => set('color', 'value', value)} />
+              <Select name="color" value={local.color.value} options={VALID_COLORS} onChange={(value) => set('color', 'value', value)} />
             </Field>
           )}
-          <Check checked={local.color.rotate} onChange={(value) => set('color', 'rotate', value)}>
+          <Check name="colorRotate" checked={local.color.rotate} onChange={(value) => set('color', 'rotate', value)}>
             Change the colour every few seconds
           </Check>
         </Section>
 
         <Section title="Snow">
-          <Check checked={local.snowflakes.enabled} onChange={(value) => set('snowflakes', 'enabled', value)}>
+          <Check name="snowEnabled" checked={local.snowflakes.enabled} onChange={(value) => set('snowflakes', 'enabled', value)}>
             Show falling snow
           </Check>
           {local.snowflakes.enabled && (
             <>
               <Field label="Amount">
                 <Select
+                  name="snowAmount"
                   value={local.snowflakes.amount}
                   options={Object.keys(SNOW_AMOUNTS)}
                   onChange={(value) => set('snowflakes', 'amount', value)}
@@ -213,6 +224,7 @@ export default function SettingsForm() {
               </Field>
               <Field label="Speed">
                 <Select
+                  name="snowSpeed"
                   value={local.snowflakes.speed}
                   options={Object.keys(SNOW_SPEEDS)}
                   onChange={(value) => set('snowflakes', 'speed', value)}
