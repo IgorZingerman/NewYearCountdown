@@ -3,14 +3,80 @@
 import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 
-export default function Yeti() {
+export default function Yeti({ celebrating = false }) {
   const yetiRef = useRef(null);
+  const leftArmRef = useRef(null);
+  const rightArmRef = useRef(null);
   const [position, setPosition] = useState(-100); // Start off-screen left
 
   useEffect(() => {
     if (!yetiRef.current) return;
 
     const yeti = yetiRef.current;
+
+    // Midnight! Stop walking and celebrate instead.
+    if (celebrating) {
+      const leftArm = leftArmRef.current;
+      const rightArm = rightArmRef.current;
+      // The yeti's `left` is -100px, so its on-screen x is (gsap x - 100).
+      // Center it horizontally on the screen.
+      const centerX = window.innerWidth / 2 - 40 + 100;
+
+      gsap.set(yeti, { transformOrigin: '50% 100%' });
+
+      const party = gsap.timeline();
+
+      // Run to the middle of the screen with little bounces
+      party.to(yeti, { x: centerX, duration: 1.5, ease: 'power2.inOut' }, 0);
+      party.to(
+        yeti,
+        { y: -8, rotation: 3, duration: 0.15, yoyo: true, repeat: 9, ease: 'sine.inOut' },
+        0
+      );
+
+      party.addLabel('cheer', 1.5);
+
+      // Both arms up, then wave them
+      party.to(
+        leftArm,
+        { rotation: 150, svgOrigin: '18 42', duration: 0.4, ease: 'back.out(2)' },
+        'cheer'
+      );
+      party.to(
+        rightArm,
+        { rotation: -150, svgOrigin: '62 42', duration: 0.4, ease: 'back.out(2)' },
+        'cheer'
+      );
+      party.to(
+        leftArm,
+        { rotation: 125, svgOrigin: '18 42', duration: 0.22, yoyo: true, repeat: -1, ease: 'sine.inOut' },
+        'cheer+=0.4'
+      );
+      party.to(
+        rightArm,
+        { rotation: -125, svgOrigin: '62 42', duration: 0.22, yoyo: true, repeat: -1, ease: 'sine.inOut' },
+        'cheer+=0.4'
+      );
+
+      // Jump for joy with squash & stretch
+      const jumps = gsap.timeline({ repeat: -1 });
+      jumps
+        .to(yeti, { scaleX: 1.1, scaleY: 0.88, duration: 0.12, ease: 'power1.out' }) // crouch
+        .to(yeti, { y: -60, scaleX: 0.94, scaleY: 1.1, rotation: 5, duration: 0.4, ease: 'power2.out' })
+        .to(yeti, { y: 0, scaleX: 1, scaleY: 1, rotation: -5, duration: 0.4, ease: 'power2.in' })
+        .to(yeti, { scaleX: 1.12, scaleY: 0.86, rotation: 0, duration: 0.1, ease: 'power1.out' }) // land
+        .to(yeti, { scaleX: 1, scaleY: 1, duration: 0.12, ease: 'power1.in' });
+      party.add(jumps, 'cheer');
+
+      return () => {
+        party.kill();
+        jumps.kill();
+        gsap.killTweensOf([yeti, leftArm, rightArm]);
+        gsap.set(yeti, { y: 0, rotation: 0, scaleX: 1, scaleY: 1 });
+        gsap.set([leftArm, rightArm], { rotation: 0 });
+      };
+    }
+
     const windowWidth = window.innerWidth;
 
     // Create cute waddling animation
@@ -66,7 +132,7 @@ export default function Yeti() {
       walkTimeline.kill();
       moveTimeline.kill();
     };
-  }, []);
+  }, [celebrating]);
 
   return (
     <div
@@ -78,7 +144,7 @@ export default function Yeti() {
         left: `${position}px`,
         width: '80px',
         height: '120px',
-        zIndex: 3,
+        zIndex: 6, // above the fireworks canvas (5)
         filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))',
       }}
     >
@@ -120,15 +186,19 @@ export default function Yeti() {
           strokeLinecap="round"
         />
         
-        {/* Arms - more rounded */}
-        <ellipse cx="18" cy="62" rx="9" ry="28" fill="#f8f8f8" />
-        <ellipse cx="18" cy="62" rx="7" ry="26" fill="#ffffff" />
-        <ellipse cx="62" cy="62" rx="9" ry="28" fill="#f8f8f8" />
-        <ellipse cx="62" cy="62" rx="7" ry="26" fill="#ffffff" />
-        
-        {/* Hands */}
-        <circle cx="18" cy="88" r="6" fill="#ffffff" />
-        <circle cx="62" cy="88" r="6" fill="#ffffff" />
+        {/* Arms - more rounded (grouped so they can be raised when celebrating) */}
+        <g ref={leftArmRef}>
+          <ellipse cx="18" cy="62" rx="9" ry="28" fill="#f8f8f8" />
+          <ellipse cx="18" cy="62" rx="7" ry="26" fill="#ffffff" />
+          {/* Hand */}
+          <circle cx="18" cy="88" r="6" fill="#ffffff" />
+        </g>
+        <g ref={rightArmRef}>
+          <ellipse cx="62" cy="62" rx="9" ry="28" fill="#f8f8f8" />
+          <ellipse cx="62" cy="62" rx="7" ry="26" fill="#ffffff" />
+          {/* Hand */}
+          <circle cx="62" cy="88" r="6" fill="#ffffff" />
+        </g>
         
         {/* Legs - chubbier */}
         <ellipse cx="28" cy="105" rx="11" ry="22" fill="#f8f8f8" />

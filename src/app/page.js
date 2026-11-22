@@ -44,7 +44,7 @@ export default function HomePage() {
       <Scenery />
 
       {/* Yeti Character */}
-      <Yeti />
+      <Yeti celebrating={countdown.isExpired} />
 
       {/* Snowflakes - stop when countdown expires */}
       {config.snowflakes?.enabled && !countdown.isExpired && (
