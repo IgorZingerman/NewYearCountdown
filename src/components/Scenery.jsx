@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
+import Moon from './Moon';
 
 /**
  * The night-time winter backdrop, back to front:
@@ -208,26 +209,8 @@ export default function Scenery() {
         ))}
       </div>
 
-      {/* Moon */}
-      <div
-        className="moon"
-        style={{
-          position: 'absolute',
-          left: '11%',
-          top: '9%',
-          width: 'clamp(56px, 7vw, 104px)',
-          height: 'clamp(56px, 7vw, 104px)',
-          borderRadius: '50%',
-          background: `
-            radial-gradient(circle at 34% 30%, rgba(150,160,180,0.35) 0 9%, transparent 10%),
-            radial-gradient(circle at 62% 58%, rgba(150,160,180,0.3) 0 13%, transparent 14%),
-            radial-gradient(circle at 44% 74%, rgba(150,160,180,0.28) 0 7%, transparent 8%),
-            radial-gradient(circle at 38% 34%, #fffdf2 0%, #f3efd8 70%, #e2dcc0 100%)
-          `,
-          boxShadow: '0 0 30px 8px rgba(255,250,220,0.35), 0 0 120px 40px rgba(180,200,255,0.18)',
-          zIndex: 1,
-        }}
-      />
+      {/* Moon, showing its real phase */}
+      <Moon />
 
       {/* Shooting star (positioned and animated from the effect above) */}
       <div
