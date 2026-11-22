@@ -125,13 +125,14 @@ jobs:
         run: $RSYNC_SSH "$DEPLOY_USER@$DEPLOY_HOST" "test -d '$DEPLOY_PATH'"
 
       # Server-managed files/folders are excluded so --delete can never remove them
-      # (.dh-diag is a DreamHost symlink; the favicon files are not part of the build).
+      # (.dh-diag is a DreamHost symlink. The old empty favicon.ico/favicon.gif are removed
+      # on purpose: the site's own icon.svg is the favicon.)
       # --max-delete aborts if a deploy would remove more than a handful of files.
       - name: Dry run (what would change)
         run: |
           rsync -rltpzn --itemize-changes --delete-after --max-delete=50 \
             --exclude='/.well-known/' --exclude='/cgi-bin/' --exclude='/stats/' --exclude='/logs/' \
-            --exclude='/.dh-diag' --exclude='/favicon.ico' --exclude='/favicon.gif' \
+            --exclude='/.dh-diag' \
             --exclude='.gitkeep' \
             -e "$RSYNC_SSH" out/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
 
@@ -139,7 +140,7 @@ jobs:
         run: |
           rsync -rltpz --itemize-changes --delete-after --max-delete=50 \
             --exclude='/.well-known/' --exclude='/cgi-bin/' --exclude='/stats/' --exclude='/logs/' \
-            --exclude='/.dh-diag' --exclude='/favicon.ico' --exclude='/favicon.gif' \
+            --exclude='/.dh-diag' \
             --exclude='.gitkeep' \
             -e "$RSYNC_SSH" out/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
 

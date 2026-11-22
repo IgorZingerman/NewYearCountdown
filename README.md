@@ -72,7 +72,7 @@ The site is a **static export** (`output: 'export'` in `next.config.js`), so it 
 1. **build** (all PRs and `main`): `npm ci`, lint, tests, `npm run build`, then packages `out/`. No secrets are used.
 2. **deploy** (only `main`, i.e. after a merge): downloads the exact package that was just built and uploads it with `rsync` over SSH, then checks that the live site is serving the new build's JavaScript.
 
-Safety rails: the SSH host key is pinned; `rsync --delete` runs with `--max-delete=50`, so a deploy that would remove more than 50 files aborts; a dry run prints what would change before the real upload; `.well-known/`, `cgi-bin/`, `stats/`, `logs/`, `.dh-diag` and the two favicon files on the server are never touched; the folder must already exist; the job only runs on `main`, uses the `production` environment, and never runs for pull requests. Actions are pinned to full commit SHAs and the workflow has read-only repo permissions.
+Safety rails: the SSH host key is pinned; `rsync --delete` runs with `--max-delete=50`, so a deploy that would remove more than 50 files aborts; a dry run prints what would change before the real upload; `.well-known/`, `cgi-bin/`, `stats/`, `logs/`, `.dh-diag` on the server is never touched (the old empty `favicon.ico`/`favicon.gif` are removed, the site's `icon.svg` replaces them); the folder must already exist; the job only runs on `main`, uses the `production` environment, and never runs for pull requests. Actions are pinned to full commit SHAs and the workflow has read-only repo permissions.
 
 **One-time setup.** The repo is public, so the host details and the key are secrets of the GitHub environment `production` (Settings → Environments), not files in the repo:
 
