@@ -12,7 +12,7 @@ A festive New Year countdown website with falling snow, a cute waddling yeti, a 
 - 🦣 A yeti that waddles across the screen
 - 🎆 At zero: canvas fireworks, and the yeti runs to the center, throws his arms up and jumps
 - 🏔️ Mountain scenery with twinkling stars
-- 🔊 Spoken announcements (Web Speech API) at 1 hour, 20 minutes, 30 seconds, and the final 10 seconds
+- 🔊 Spoken announcements (Web Speech API) at 1 hour, 20 minutes, 30 seconds, and the final 10 seconds, plus optional final-countdown music (see below)
 - ⚙️ Settings page (`/settings`), saved in your browser's `localStorage`
 
 ## Quick start
@@ -42,8 +42,10 @@ Clear it afterwards with `localStorage.removeItem('countdown-config')`. You can 
 | `npm run dev` | Next.js dev server |
 | `npm run build` | Static export to `out/` (also copies `.htaccess`) |
 | `npm test` | Jest test suite |
+| `npm run lint` | ESLint (Next.js rules) |
 | `npm run test:watch` / `test:coverage` | Watch mode / coverage report |
 | `npm run deploy` | Build and generate an `rsync` command (see Deployment) |
+| `npm run build:cli` / `start:cli` | Build and run the legacy terminal version (`dist/cli/`) |
 
 ## Configuration
 
@@ -54,6 +56,10 @@ Settings are edited on the `/settings` page and stored in `localStorage` under `
 - Font selection and rotation
 - Countdown color and rotation
 - Snowflake count, speed, symbols and colors
+
+## Final-countdown music (optional)
+
+At 6 minutes to go the site tries to play `/music/TheFinalCountdown.mp3`. The track is not in the repo (it's copyrighted and this repo is public), so to enable it, drop your own file at `public/music/TheFinalCountdown.mp3`. Files in `public/music/` are gitignored, but `npm run build` still copies them into `out/` so they get deployed. If the file is missing the site just logs a warning and carries on. Browsers may block audio and speech until the page has had a click or key press.
 
 ## Deployment
 
@@ -76,7 +82,8 @@ The `.htaccess` in the repo root handles HTTPS redirect and routing, and needs `
 - `src/components/` - `CountdownDisplay`, `Snowflakes`, `Yeti`, `Fireworks`, `Scenery`, `SettingsForm`
 - `src/hooks/` - `useConfig`, `useCountdown`, `useAudio`
 - `src/lib/` - `config.js` (defaults and validation), `audio.js` (announcements)
-- `src/cli/` - the original terminal (Ink) version, kept for reference
+- `src/cli/` - the original terminal (Ink) version, kept for reference (`npm run build:cli && npm run start:cli`)
+- `public/` - static files copied as-is into the export (e.g. `public/music/`)
 - `src/__tests__/` - Jest tests
 - `scripts/` - deploy script
 - `.cursor/skills/`, `AGENTS.md`, `CLAUDE.md` - guidance for AI coding agents
@@ -87,15 +94,15 @@ The `.htaccess` in the repo root handles HTTPS redirect and routing, and needs `
 npm test
 ```
 
-Many of the existing tests re-implement the logic they check instead of importing it. `src/__tests__/defaultTargetDate.test.js` imports the real code and is a good model for new tests.
+Many of the older tests re-implement the logic they check instead of importing it. `defaultTargetDate.test.js` and `audioFile.test.js` import the real code and are a good model for new tests.
 
 ## Known issues
 
-- **Music:** the final-countdown audio tries to load `/music/TheFinalCountdown.mp3`, but there is no `public/` folder, so no audio file is served. The repo's `music/` folder is empty. Add the file under `public/music/` to enable it.
-- **Legacy CLI:** `npm run build:cli` writes to `dist/`, but `npm run start:cli` runs `dist/cli/index.js`, so it doesn't start. The CLI config also still has an old target date.
-- **Lint:** `npm run lint` doesn't work with Next.js 16 (`next lint` was removed). The deploy script treats this as a warning and continues.
 - **Config defaults:** `validateConfig` in `src/lib/config.js` shallow-copies the defaults and then edits nested objects, so shared defaults can get modified.
 - **Old saved dates:** a date saved from `/settings` stays in that browser's `localStorage` even after a new default ships, so it can keep showing an old, expired date until it's changed or cleared.
+- **Unknown URLs return 200:** the `.htaccess` fallback serves the homepage for any unknown path, so there are no real 404s.
+- **Hours, not days:** the countdown shows total hours (e.g. `963:55:41`).
+- **Older tests:** many re-implement logic instead of testing the real code.
 
 ## License
 

@@ -11,7 +11,7 @@ Read `AGENTS.md` first for conventions, the working agreement and known issues. 
 
 ```
 - [ ] 1. Make the change (follow the Conventions in AGENTS.md)
-- [ ] 2. npm test
+- [ ] 2. npm run lint && npm test
 - [ ] 3. Verify in the browser (below)
 - [ ] 4. npm run build (must succeed; static export)
 - [ ] 5. Commit on a branch, open a PR into main (main is protected)
@@ -41,6 +41,8 @@ To see the default date, clear the saved config first (step 5) and reload: it sh
 **Add a setting**: add it to `DEFAULT_CONFIG` in `src/lib/config.js`, validate it in `validateConfig`, expose it in `SettingsForm.jsx`, then pass it to the component from `src/app/page.js`. Add a test that imports the real function.
 
 **Add an animated component**: make it a client component, put cleanup in the effect return (kill GSAP tweens, cancel `requestAnimationFrame`, clear timeouts, remove listeners), and pick a z-index from the layering order in `AGENTS.md`. Respect `prefers-reduced-motion` for anything intense.
+
+**Add or change audio**: audio files live in `public/music/` and are gitignored (copyrighted, public repo). Never commit them. Go through `playAudioFile` in `src/lib/audio.js`, which skips the HTML the host returns for missing files.
 
 **Change anything date-related**: store ISO strings that represent a local date/time and read them back with local getters, never `getUTC*`. Test the edge `Dec 31 23:59:59 -> Jan 1 00:00:00`, as in `src/__tests__/defaultTargetDate.test.js`.
 

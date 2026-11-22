@@ -15,6 +15,7 @@ This directory contains comprehensive functional tests for the New Year Countdow
 - **integration.test.js** - Integration tests for complete workflows
 - **utils.test.js** - Tests for utility functions and helpers
 - **defaultTargetDate.test.js** - Tests the real `getNextNewYear()` helper and the default target date (imports the actual code)
+- **audioFile.test.js** - Tests the real `playAudioFile()`: plays audio, skips the homepage HTML returned for a missing file, handles network errors (imports the actual code)
 
 ## Running Tests
 
