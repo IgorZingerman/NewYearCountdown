@@ -144,21 +144,27 @@ jobs:
             --exclude='.gitkeep' \
             -e "$RSYNC_SSH" out/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
 
-      # Proves the live site is serving the new build: its own JavaScript must load
+      # Proves the live site is serving the new build: its own JavaScript must load.
+      # The web host sometimes refuses connections from some of GitHub's runner addresses
+      # (every attempt then fails to connect). In that one case only, the files on the
+      # server are compared with the build over SSH instead, and the job passes with a warning.
       - name: Verify the live site
         # Every request has a time limit, so a host that doesn't answer fails an attempt
         # in seconds (and shows why) instead of hanging for minutes. This step also has an
         # overall limit. The upload above has already finished when this runs.
-        timeout-minutes: 6
+        timeout-minutes: 8
         run: |
           base="${DEPLOY_URL%/}"
           chunk=$(grep -o '_next/static/[^"]*\.js' out/index.html | head -n 1)
           [ -n "$chunk" ] || { echo "::error::No JS chunk found in build"; exit 1; }
           err=$(mktemp)
+          reached=0
           for attempt in 1 2 3 4 5 6; do
             # A missing file on the host is answered with the homepage HTML (200),
             # so check the content type as well as the status.
             type=$(curl -sS --connect-timeout 10 --max-time 20 -o /dev/null -w '%{http_code} %{content_type}' "$base/$chunk" 2>"$err" || true)
+            # 000 means no answer at all (could not connect). Anything else is a real reply.
+            if [ "${type%% *}" != "000" ]; then reached=1; fi
             case "$type" in
               "200 "*javascript*)
                 # Direct loads of /settings must show the page, not a folder listing
@@ -173,10 +179,37 @@ jobs:
                 type="the JavaScript loaded but /settings did not" ;;
             esac
             echo "Attempt $attempt: got '$type' $(tr '\n' ' ' < "$err"), retrying in 10s..."
-            sleep 10
+            if [ "$attempt" -lt 6 ]; then sleep 10; fi
           done
-          echo "::error::The live site is not serving the new build (it did not answer correctly in time)"
-          exit 1
+
+          if [ "$reached" = 1 ]; then
+            echo "::error::The live site is not serving the new build (it answered, but not correctly)"
+            exit 1
+          fi
+
+          # Never any answer: the runner could not connect. Compare the files on the server
+          # with the build instead (checksums, read-only; the server's own folders are ignored).
+          echo "The runner could not connect to the site at all. Comparing the files on the server with the build over SSH instead..."
+          if ! listing=$(rsync -rlnc --itemize-changes --delete \
+              --exclude='/.well-known/' --exclude='/cgi-bin/' --exclude='/stats/' --exclude='/logs/' \
+              --exclude='/.dh-diag' --exclude='.gitkeep' \
+              -e "$RSYNC_SSH" out/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"); then
+            echo "::error::The runner could not connect to the site, and the files on the server could not be compared either"
+            exit 1
+          fi
+          # Lines starting with < > c or * are files that differ, are missing, or would be deleted
+          differences=$(printf '%s\n' "$listing" | grep -E '^(<|>|c|\*)' || true)
+          if [ -n "$differences" ]; then
+            echo "$differences" | head -n 20
+            echo "::error::The runner could not connect to the site, and the files on the server do not match this build"
+            exit 1
+          fi
+          echo "::warning::The runner could not reach the live site, so the web server was not checked. The files on the server match this build exactly."
+          {
+            echo "### Deploy check: web server not checked"
+            echo "GitHub's runner could not connect to the live site (the host refuses some runner addresses)."
+            echo "The files on the server were compared with the build over SSH and match exactly. Open the site to confirm it loads."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Clean up the SSH key
         if: always()
