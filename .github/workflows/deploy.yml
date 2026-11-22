@@ -152,6 +152,11 @@ jobs:
             type=$(curl -s -o /dev/null -w '%{http_code} %{content_type}' "$base/$chunk" || true)
             case "$type" in
               "200 "*javascript*)
+                # Direct loads of /settings must show the page, not a folder listing
+                if curl -fsSL "$base/settings" | grep -q 'Index of'; then
+                  echo "::error::/settings shows a directory listing instead of the page"
+                  exit 1
+                fi
                 echo "Live site is serving the new build."
                 exit 0 ;;
             esac
