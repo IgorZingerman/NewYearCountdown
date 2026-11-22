@@ -38,6 +38,7 @@ export function createWorld() {
     yeti: { x: 0, dir: 1, depth: 0.5, moving: false }, // the cub follows him
     hoursLeft: null, // lets them remark on how long is left
     lastSpeechAt: -Infinity, // seconds; so only one of them talks at a time
+    joke: null, // the joke being told: { steps, index, due } (see chatter.js)
     setHoursLeft(hours) {
       this.hoursLeft = hours;
     },

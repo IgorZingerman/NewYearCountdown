@@ -36,3 +36,38 @@ export function canSpeak({ now, lastSpeechAt, minGap = 3, x, width, margin = 0.0
 export function speechDuration(text) {
   return Math.min(4200, 1500 + text.length * 70);
 }
+
+/**
+ * Jokes, as the lines said in order. Each line can be said by any character
+ * (whoever is free next), so a joke can be a little exchange between friends.
+ * One-liners are a question and its answer.
+ */
+export const JOKES = [
+  ['Knock knock!', "Who's there?", 'Boo.', 'Boo who?', "Don't cry, it's only a joke!"],
+  ['Knock knock!', "Who's there?", 'Lettuce.', 'Lettuce who?', 'Lettuce in, I am freezing!'],
+  ['Knock knock!', "Who's there?", 'Ice.', 'Ice who?', 'Ice to meet you!'],
+  ['Knock knock!', "Who's there?", 'Snow.', 'Snow who?', "Snow use, I'm freezing!"],
+  ['Knock knock!', "Who's there?", 'Doughnut.', 'Doughnut who?', 'Doughnut open this door, it is cold!'],
+  ['What do snowmen eat for breakfast?', 'Frosted flakes!'],
+  ['What do you call a penguin in the desert?', 'Lost!'],
+  ["What's a yeti's favourite dessert?", 'Abominable pie!'],
+  ['What do you call a bear with no teeth?', 'A gummy bear!'],
+  ['Why was the owl bad at tests?', "It didn't give a hoot!"],
+  ['What do you call a snowman in summer?', 'A puddle!'],
+];
+
+/** Chance that a character starts a joke, rather than a plain remark, when it speaks. */
+export const JOKE_CHANCE = 0.25;
+
+/** One joke: the list of lines, picked at random. */
+export function pickJoke(rand = Math.random) {
+  return JOKES[Math.floor(rand() * JOKES.length)];
+}
+
+/**
+ * Seconds to wait before the next line of a joke, so the bubble has been read
+ * and the next one doesn't replace it. Always more than canSpeak's gap.
+ */
+export function jokeGap(text) {
+  return Math.max(3.2, speechDuration(text) / 1000 + 0.5);
+}

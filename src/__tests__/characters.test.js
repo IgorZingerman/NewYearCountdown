@@ -13,7 +13,7 @@ import {
 } from '../lib/wander';
 import { createBlinker, createInterval, tf } from '../lib/pose';
 import { OWL_START_PERCH, PERCHES, TREES, perchSpot, treeBottomVh, treeTipVh } from '../lib/scene';
-import { canSpeak, countdownRemark, pickLine, speechDuration } from '../lib/chatter';
+import { JOKES, canSpeak, countdownRemark, jokeGap, pickJoke, pickLine, speechDuration } from '../lib/chatter';
 import { flightDuration, flightPoint, pickPerch } from '../lib/flight';
 
 // Deterministic "random" so tests are repeatable.
@@ -274,6 +274,7 @@ describe('createWorld', () => {
     const world = createWorld();
     expect(world.hoursLeft).toBeNull();
     expect(world.lastSpeechAt).toBe(-Infinity);
+    expect(world.joke).toBeNull();
     expect(world.yeti).toBeDefined();
   });
 
@@ -498,3 +499,38 @@ describe('owl flight', () => {
 function lerpLine(a, b, t) {
   return a + (b - a) * t;
 }
+
+describe('jokes', () => {
+  test('every joke is short enough for a bubble, and never empty', () => {
+    for (const joke of JOKES) {
+      expect(joke.length).toBeGreaterThanOrEqual(2);
+      for (const line of joke) {
+        expect(line.length).toBeGreaterThan(0);
+        expect(line.length).toBeLessThanOrEqual(45); // a bubble stays readable on a phone
+      }
+    }
+  });
+
+  test('knock-knock jokes follow the knock-knock pattern', () => {
+    const knockKnocks = JOKES.filter((joke) => joke[0] === 'Knock knock!');
+    expect(knockKnocks.length).toBeGreaterThan(0);
+    for (const [, whoIs, name, whoName] of knockKnocks) {
+      expect(whoIs).toBe("Who's there?");
+      expect(whoName).toBe(`${name.replace(/\.$/, '')} who?`);
+    }
+  });
+
+  test('pickJoke returns one of the jokes, and can reach every one', () => {
+    expect(pickJoke(() => 0)).toBe(JOKES[0]);
+    expect(pickJoke(() => 0.999999)).toBe(JOKES[JOKES.length - 1]);
+    const seen = new Set();
+    for (let i = 0; i < 500; i++) seen.add(pickJoke());
+    expect(seen.size).toBe(JOKES.length);
+  });
+
+  test('jokeGap waits long enough to read a line, and never less than the speech gap', () => {
+    expect(jokeGap('Boo.')).toBeGreaterThanOrEqual(3.2);
+    expect(jokeGap('x'.repeat(200))).toBeGreaterThan(jokeGap('Boo.'));
+    expect(jokeGap('x'.repeat(200))).toBeLessThanOrEqual(4.8);
+  });
+});

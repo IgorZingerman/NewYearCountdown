@@ -2,7 +2,15 @@
 
 import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
-import { canSpeak, countdownRemark, pickLine, speechDuration } from '../../lib/chatter';
+import {
+  JOKE_CHANCE,
+  canSpeak,
+  countdownRemark,
+  jokeGap,
+  pickJoke,
+  pickLine,
+  speechDuration,
+} from '../../lib/chatter';
 
 /**
  * Shared shell for every character. It owns the parts that are the same for
@@ -60,6 +68,7 @@ export default function Actor({ viewBox, width, behavior, world, celebrating, ch
     let loopTl = null;
     let bubbleTl = null;
 
+    const me = {}; // identifies this character when it takes a line of a joke
     const api = {
       /** Show a speech bubble for a moment. */
       say(text, ms = speechDuration(text)) {
@@ -143,24 +152,43 @@ export default function Actor({ viewBox, width, behavior, world, celebrating, ch
       const place = brain.tick(dt, time, env);
 
       // Say something now and then (a different range once the party starts).
+      // While a joke is being told, only the joke speaks, so its lines stay in order.
       if (brain.talk) {
+        const nowSeconds = now / 1000;
         if (env.celebrating !== wasCelebrating) {
           wasCelebrating = env.celebrating;
+          world.joke = null;
           nextSayAt = time + (env.celebrating ? 2 + Math.random() * 4 : 15 + Math.random() * 25);
         }
-        if (time >= nextSayAt) {
-          const nowSeconds = now / 1000;
+        const jokeRunning = Boolean(world.joke) && !env.celebrating;
+        // Lines are passed between friends: the same character doesn't get two in a row,
+        // unless nobody else has taken the next line within 2 seconds.
+        const passedTurn = jokeRunning && world.joke.speaker === me && nowSeconds < world.joke.due + 2;
+        const due = jokeRunning ? nowSeconds >= world.joke.due && !passedTurn : time >= nextSayAt;
+        if (due) {
           if (canSpeak({ now: nowSeconds, lastSpeechAt: world.lastSpeechAt ?? -Infinity, x: place.x, width: W })) {
-            const lines = env.celebrating ? brain.talk.celebrate : brain.talk.lines;
-            const remark = env.celebrating ? null : countdownRemark(world.hoursLeft);
-            const line = pickLine(lines, { remark, last: lastLine });
+            let line = null;
+            if (env.celebrating) {
+              line = pickLine(brain.talk.celebrate, { last: lastLine });
+            } else if (jokeRunning || Math.random() < JOKE_CHANCE) {
+              if (!jokeRunning) world.joke = { steps: pickJoke(), index: 0, due: 0, speaker: null };
+              const joke = world.joke;
+              line = joke.steps[joke.index];
+              joke.index += 1;
+              joke.speaker = me;
+              if (joke.index >= joke.steps.length) world.joke = null;
+            } else {
+              const remark = countdownRemark(world.hoursLeft);
+              line = pickLine(brain.talk.lines, { remark, last: lastLine });
+            }
             if (line) {
               api.say(line);
               lastLine = line;
             }
+            if (world.joke) world.joke.due = nowSeconds + jokeGap(line);
             const range = env.celebrating ? [6, 12] : [25, 60];
             nextSayAt = time + range[0] + Math.random() * (range[1] - range[0]);
-          } else {
+          } else if (!jokeRunning) {
             nextSayAt = time + 1.5; // someone else is talking, or out of sight: try again soon
           }
         }
