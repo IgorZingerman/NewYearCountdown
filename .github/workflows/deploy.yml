@@ -146,28 +146,36 @@ jobs:
 
       # Proves the live site is serving the new build: its own JavaScript must load
       - name: Verify the live site
+        # Every request has a time limit, so a host that doesn't answer fails an attempt
+        # in seconds (and shows why) instead of hanging for minutes. This step also has an
+        # overall limit. The upload above has already finished when this runs.
+        timeout-minutes: 6
         run: |
           base="${DEPLOY_URL%/}"
           chunk=$(grep -o '_next/static/[^"]*\.js' out/index.html | head -n 1)
           [ -n "$chunk" ] || { echo "::error::No JS chunk found in build"; exit 1; }
-          for attempt in 1 2 3 4 5; do
+          err=$(mktemp)
+          for attempt in 1 2 3 4 5 6; do
             # A missing file on the host is answered with the homepage HTML (200),
             # so check the content type as well as the status.
-            type=$(curl -s -o /dev/null -w '%{http_code} %{content_type}' "$base/$chunk" || true)
+            type=$(curl -sS --connect-timeout 10 --max-time 20 -o /dev/null -w '%{http_code} %{content_type}' "$base/$chunk" 2>"$err" || true)
             case "$type" in
               "200 "*javascript*)
                 # Direct loads of /settings must show the page, not a folder listing
-                if curl -fsSL "$base/settings" | grep -q 'Index of'; then
-                  echo "::error::/settings shows a directory listing instead of the page"
-                  exit 1
+                if page=$(curl -fsSL --connect-timeout 10 --max-time 20 "$base/settings" 2>"$err"); then
+                  if printf '%s' "$page" | grep -q 'Index of'; then
+                    echo "::error::/settings shows a directory listing instead of the page"
+                    exit 1
+                  fi
+                  echo "Live site is serving the new build."
+                  exit 0
                 fi
-                echo "Live site is serving the new build."
-                exit 0 ;;
+                type="the JavaScript loaded but /settings did not" ;;
             esac
-            echo "Attempt $attempt: got '$type', retrying in 5s..."
-            sleep 5
+            echo "Attempt $attempt: got '$type' $(tr '\n' ' ' < "$err"), retrying in 10s..."
+            sleep 10
           done
-          echo "::error::The live site is not serving the new build"
+          echo "::error::The live site is not serving the new build (it did not answer correctly in time)"
           exit 1
 
       - name: Clean up the SSH key
