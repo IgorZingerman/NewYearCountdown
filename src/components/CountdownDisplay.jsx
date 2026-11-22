@@ -133,11 +133,11 @@ export default function CountdownDisplay({
       <div style={{ marginTop: '2rem', fontSize: '1.2rem', color: '#cccccc' }}>
         Until {(() => {
           const date = new Date(targetDate);
-          // Use UTC date components to avoid timezone conversion issues
-          // This ensures the date displayed matches what the user selected
-          const year = date.getUTCFullYear();
-          const month = date.toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' });
-          const day = date.getUTCDate();
+          // targetDate is stored as an ISO (UTC) string of a LOCAL date/time,
+          // so read it back with local components to show the date the user picked
+          const year = date.getFullYear();
+          const month = date.toLocaleDateString('en-US', { month: 'long' });
+          const day = date.getDate();
           return `${month} ${day}, ${year}`;
         })()}
       </div>

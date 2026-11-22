@@ -1,6 +1,16 @@
+/**
+ * ISO string for the next January 1st at midnight in the viewer's LOCAL time.
+ * (Jan 1st of the current year has always already started, so this is always
+ * Jan 1st of next year.)
+ */
+export function getNextNewYear(now = new Date()) {
+  const next = new Date(now.getFullYear() + 1, 0, 1, 0, 0, 0, 0);
+  return next.toISOString();
+}
+
 // Default configuration
 const DEFAULT_CONFIG = {
-  targetDate: "2026-01-01T00:00:00.000Z",
+  targetDate: getNextNewYear(),
   description: "New Year countdown configuration",
   celebrationMessage: "🎉 Happy New Year! 🎉",
   

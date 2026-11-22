@@ -14,12 +14,12 @@
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
-    "build:cli": "babel --config-file .babel/babel.config.cjs --out-dir=dist src/cli",
+    "build:cli": "babel --config-file ./.babel/babel.config.cjs --out-dir=dist src/cli",
     "start:cli": "node dist/cli/index.js",
-    "dev:cli": "babel --config-file .babel/babel.config.cjs --out-dir=dist --watch src/cli",
-    "transpile": "mkdir -p dist && babel --config-file .babel/babel.config.cjs src/cli/index.js > dist/cli/index.js",
+    "dev:cli": "babel --config-file ./.babel/babel.config.cjs --out-dir=dist --watch src/cli",
+    "transpile": "mkdir -p dist/cli && babel --config-file ./.babel/babel.config.cjs src/cli/index.js > dist/cli/index.js",
     "prepublish": "npm run transpile",
-    "preview-fonts": "babel --config-file .babel/babel.config.cjs src/cli/preview-fonts.js --out-file dist/cli/preview-fonts.js && node dist/cli/preview-fonts.js"
+    "preview-fonts": "babel --config-file ./.babel/babel.config.cjs src/cli/preview-fonts.js --out-file dist/cli/preview-fonts.js && node dist/cli/preview-fonts.js"
   },
   "license": "MIT",
   "type": "module",
