@@ -38,7 +38,7 @@ To see the default date, clear the saved config first (step 5) and reload: it sh
 
 ## Common tasks
 
-**Add a setting**: add it to `DEFAULT_CONFIG` in `src/lib/config.js`, validate it in `validateConfig`, expose it in `SettingsForm.jsx`, then pass it to the component from `src/app/page.js`. Add a test that imports the real function.
+**Add a setting**: add it to `createDefaultConfig()` in `src/lib/config.js`, validate it in `validateConfig`, expose it in `SettingsForm.jsx`, then pass it to the component from `src/app/page.js`. Add a test that imports the real function.
 
 **Add or change a character**: read the Characters section of `AGENTS.md`. Put movement and maths in `src/lib/` and test it; keep the art and the per-frame posing in the character file. To inspect the art up close, freeze the animation (`window.requestAnimationFrame = () => 0`) and magnify one character with a CSS transform on `<main>`.
 

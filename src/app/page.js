@@ -1,6 +1,7 @@
 'use client';
 
 import { useConfig } from '../hooks/useConfig';
+import { snowSettings } from '../lib/config';
 import { useCountdown } from '../hooks/useCountdown';
 import { useAudio } from '../hooks/useAudio';
 import CountdownDisplay from '../components/CountdownDisplay';
@@ -13,6 +14,7 @@ import Link from 'next/link';
 export default function HomePage() {
   const { config, loading } = useConfig();
   const countdown = useCountdown(config?.targetDate);
+  const snow = snowSettings(config?.snowflakes);
   
   // Handle audio announcements
   useAudio(countdown.hours, countdown.minutes, countdown.seconds);
@@ -48,11 +50,7 @@ export default function HomePage() {
 
       {/* Snowflakes - stop when countdown expires */}
       {config.snowflakes?.enabled && !countdown.isExpired && (
-        <Snowflakes
-          enabled={config.snowflakes.enabled}
-          count={config.snowflakes.count}
-          speed={config.snowflakes.speed}
-        />
+        <Snowflakes enabled count={snow.count} speed={snow.speed} />
       )}
 
       {/* Fireworks - show when countdown expires */}
@@ -76,11 +74,9 @@ export default function HomePage() {
           rotateFonts={config.font?.rotate}
           fontRotationOptions={config.font?.rotationOptions}
           defaultFont={config.font?.name}
-          rotateFrequency={config.font?.frequency}
           color={config.color?.value}
           rotateColors={config.color?.rotate}
           colorRotationOptions={config.color?.rotationOptions}
-          colorRotationFrequency={config.color?.frequency}
           isGreen={countdown.isGreen}
         />
       </div>

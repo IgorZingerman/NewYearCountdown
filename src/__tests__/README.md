@@ -4,7 +4,7 @@ This directory contains comprehensive functional tests for the New Year Countdow
 
 ## Test Files
 
-- **config.test.js** - Tests for configuration loading and validation
+- **config.test.js** - Tests the real settings code: defaults, validation (including older saved settings), saving and loading, snow levels, and the date picker helpers (`config.js`, `dateInput.js`)
 - **countdown.test.js** - Tests for countdown time calculations
 - **sayWords.test.js** - Tests for audio/speech triggers at specific times
 - **fontRotation.test.js** - Tests for font rotation logic

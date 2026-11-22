@@ -51,7 +51,13 @@ Clear it afterwards with `localStorage.removeItem('countdown-config')`. You can 
 
 ## Configuration
 
-Settings are edited on the `/settings` page and stored in `localStorage` under `countdown-config`. Defaults live in `src/lib/config.js`.
+Settings are edited on the `/settings` page and stored in `localStorage` under `countdown-config`. Defaults live in `src/lib/config.js`. You can change:
+
+- **Countdown:** the target date and time (with quick picks for the next hour, tomorrow midnight and the next New Year) and the message shown at midnight
+- **The numbers:** the font and colour, or tick "change every few seconds" and choose which fonts and colours to cycle through
+- **Snow:** on or off, how much (light, normal, heavy) and how fast (slow, normal, fast)
+
+The target date is only remembered if you pick something other than the next New Year, so by default the site rolls over to the following year by itself. The terminal version has its own config in `src/cli/config.js` and is not affected by this page.
 
 - Target date and time (your local time)
 - Celebration message
@@ -122,12 +128,11 @@ The `.htaccess` in the repo root handles HTTPS redirect and routing, and needs `
 npm test
 ```
 
-Many of the older tests re-implement the logic they check instead of importing it. `defaultTargetDate.test.js` and `audioFile.test.js` import the real code and are a good model for new tests.
+Many of the older tests re-implement the logic they check instead of importing it. `config.test.js`, `defaultTargetDate.test.js` and `audioFile.test.js` import the real code and are a good model for new tests.
 
 ## Known issues
 
-- **Config defaults:** `validateConfig` in `src/lib/config.js` shallow-copies the defaults and then edits nested objects, so shared defaults can get modified.
-- **Old saved dates:** a date saved from `/settings` stays in that browser's `localStorage` even after a new default ships, so it can keep showing an old, expired date until it's changed or cleared.
+- **Old saved dates:** a date saved before the settings cleanup stays in that browser's `localStorage` even after a new default ships, so it can keep showing an old, expired date. Pressing Reset to Defaults on `/settings` clears it. New saves only keep a date you changed yourself.
 - **Unknown URLs return 200:** the `.htaccess` fallback serves the homepage for any unknown path, so there are no real 404s.
 - **Hours, not days:** the countdown shows total hours (e.g. `963:55:41`).
 - **Older tests:** many re-implement logic instead of testing the real code.

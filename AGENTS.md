@@ -37,7 +37,8 @@ Run `npm run lint`, `npm test` and `npm run build` before proposing a PR. The le
 | `src/components/` | `CountdownDisplay`, `Snowflakes` (canvas snow), `Fireworks`, `Scenery`, `Moon`, `SettingsForm` |
 | `src/components/characters/` | The yeti and his friends: `Actor` (shared shell), one file per character, `Characters` (puts them on screen), `art.jsx` (shared look) |
 | `src/hooks/` | `useConfig` (load/save config), `useCountdown`, `useAudio` |
-| `src/lib/config.js` | `DEFAULT_CONFIG`, `getNextNewYear()`, `validateConfig`, load/save |
+| `src/lib/config.js` | Settings: `createDefaultConfig()` (and the frozen `DEFAULT_CONFIG`), `getNextNewYear()`, `validateConfig`, load/save, `snowSettings()` |
+| `src/lib/dateInput.js` | Date picker helpers and quick-pick dates for the settings page |
 | `src/lib/audio.js` | Web Speech announcements and the final-countdown music |
 | `src/lib/snow.js`, `moon.js`, `world.js`, `wander.js`, `pose.js`, `scene.js` | Pure logic (no DOM, unit tested): snow flakes and wind; moon phase; character lanes; walking and following; posing helpers; shared scenery layout |
 | `public/` | Static files copied as-is into the export. `public/music/` holds the (gitignored) audio |
@@ -68,7 +69,7 @@ Every character is an `Actor` (`src/components/characters/Actor.jsx`) plus two t
 
 ### Snow and moon
 
-The snow is one canvas (`Snowflakes.jsx` + `lib/snow.js`): soft white flakes in depth layers with sway, wind gusts and fading at the ground. Of the snow settings only `enabled`, `count` (a density) and `speed` (bigger = slower) apply; the glyph and colour settings are used only by the terminal version. The moon (`Moon.jsx` + `lib/moon.js`) follows the countdown: a crescent when New Year is far off, waxing at the real speed of the moon, and full at midnight.
+The snow is one canvas (`Snowflakes.jsx` + `lib/snow.js`): soft white flakes in depth layers with sway, wind gusts and fading at the ground. The snow settings are `enabled`, `amount` (light, normal or heavy) and `speed` (slow, normal or fast); `snowSettings()` in `lib/config.js` turns them into the `count` (a density) and `speed` (milliseconds to fall, bigger = slower) that `Snowflakes.jsx` takes. The terminal version has its own config (`src/cli/config.js`); nothing on the settings page reaches it. The moon (`Moon.jsx` + `lib/moon.js`) follows the countdown: a crescent when New Year is far off, waxing at the real speed of the moon, and full at midnight.
 
 ## Conventions that matter
 
@@ -78,7 +79,7 @@ The snow is one canvas (`Snowflakes.jsx` + `lib/snow.js`): soft white flakes in 
 - **Static assets:** put them in `public/` (served from `/`). `public/music/*` is gitignored on purpose: the final-countdown track is copyrighted and the repo is public. Never commit audio files; the build still copies local ones into `out/`.
 - **Stable random values:** do not call `Math.random()` during render for visuals (the page re-renders every second and everything would reshuffle). Generate once, e.g. `useState(() => ...)` as `Scenery.jsx` does. (Character art is rendered once and then posed by `tick` straight on the SVG attributes, not through React state.)
 - **Legacy CLI (`src/cli/`):** built separately with Babel into `dist/cli/`, so it can't import from `src/lib` (it has its own `getNextNewYear` in `src/cli/config.js`).
-- **Config:** add new settings to `DEFAULT_CONFIG`, then `validateConfig`, then `SettingsForm`, then the consumer. Do not mutate `DEFAULT_CONFIG` (see Known issues).
+- **Config:** add new settings to `createDefaultConfig()`, then `validateConfig`, then `SettingsForm`, then the consumer. `DEFAULT_CONFIG` is frozen: use `createDefaultConfig()` when you need a copy. Only add a setting if something reads it, and keep the settings page simple (choices from short lists, not free text). `saveConfig` leaves the target date out when it is the default, so it never goes stale.
 - **Tests:** Jest runs native ESM (`"type": "module"`, no transform). Prefer tests that import the real module (see `defaultTargetDate.test.js`) over ones that re-implement logic.
 
 ## Verifying UI changes
@@ -103,8 +104,7 @@ Deploys are automatic: `.github/workflows/deploy.yml` builds on every PR and, af
 
 ## Known issues
 
-- `validateConfig` does `{ ...DEFAULT_CONFIG }` (shallow) and then mutates nested objects, so the shared defaults can change.
-- A date saved from `/settings` stays in that browser's `localStorage` after a new default ships.
+- A date saved from `/settings` before the settings cleanup stays in that browser's `localStorage` after a new default ships (Reset to Defaults clears it). New saves only keep a date the visitor changed.
 - Unknown URLs return HTTP 200 with the homepage (the SPA fallback), not a real 404. A missing audio file on the host therefore comes back as HTML, which `playAudioFile` detects and skips.
 - The countdown shows total hours (e.g. `963:55:41`), not days.
 - Many older tests re-implement logic rather than testing the real code.
