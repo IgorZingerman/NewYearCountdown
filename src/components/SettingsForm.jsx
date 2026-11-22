@@ -391,7 +391,10 @@ export default function SettingsForm() {
 
         {/* Snowflake Settings */}
         <div style={{ marginBottom: '2rem', padding: '1rem', border: '1px solid #333', borderRadius: '0.5rem' }}>
-          <h2 style={{ marginBottom: '1rem' }}>Snowflake Settings</h2>
+          <h2 style={{ marginBottom: '0.5rem' }}>Snowflake Settings</h2>
+          <p style={{ marginBottom: '1rem', color: '#aaa', fontSize: '0.9rem' }}>
+            The snow on the website is always soft white. Colour and rotation only apply to the terminal version.
+          </p>
           
           <div style={{ marginBottom: '1rem' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -408,7 +411,7 @@ export default function SettingsForm() {
             <>
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem' }}>
-                  Count (1-200)
+                  Amount of snow (1-200)
                 </label>
                 <input
                   type="number"
@@ -422,7 +425,7 @@ export default function SettingsForm() {
 
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem' }}>
-                  Speed (milliseconds)
+                  Speed (milliseconds to fall; bigger = slower)
                 </label>
                 <input
                   type="number"
@@ -435,7 +438,7 @@ export default function SettingsForm() {
 
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem' }}>
-                  Snowflake Color
+                  Snowflake Color (terminal only)
                 </label>
                 <select
                   value={localConfig.snowflakes?.color?.value || 'white'}
@@ -455,7 +458,7 @@ export default function SettingsForm() {
                     checked={localConfig.snowflakes?.color?.rotate || false}
                     onChange={(e) => updateNested('snowflakes.color.rotate', e.target.checked)}
                   />
-                  Enable Snowflake Color Rotation
+                  Enable Snowflake Color Rotation (terminal only)
                 </label>
               </div>
 

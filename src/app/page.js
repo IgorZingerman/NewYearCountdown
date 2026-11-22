@@ -52,11 +52,6 @@ export default function HomePage() {
           enabled={config.snowflakes.enabled}
           count={config.snowflakes.count}
           speed={config.snowflakes.speed}
-          options={config.snowflakes.options}
-          color={config.snowflakes.color?.value}
-          rotateColors={config.snowflakes.color?.rotate}
-          colorRotationOptions={config.snowflakes.color?.rotationOptions}
-          colorRotationFrequency={config.snowflakes.color?.frequency}
         />
       )}
 

@@ -140,7 +140,7 @@ export default function Yeti({ celebrating = false }) {
       className="yeti"
       style={{
         position: 'absolute',
-        bottom: '20%',
+        bottom: '8%',
         left: `${position}px`,
         width: '80px',
         height: '120px',
