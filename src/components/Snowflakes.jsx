@@ -1,242 +1,191 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { gsap } from 'gsap';
+import {
+  createFlake,
+  createWind,
+  flakeCount,
+  speedScale,
+  stepFlake,
+} from '../lib/snow';
 
-export default function Snowflakes({
-  enabled = true,
-  count = 40,
-  speed = 4500,
-  options = ["❄", "❅", "❆", "✻", "✼", "✽", "✾", "✿", "❀", "❁"],
-  color = "white",
-  rotateColors = false,
-  colorRotationOptions = ["cyan", "blue", "white", "gray"],
-  colorRotationFrequency = 3,
-}) {
-  const containerRef = useRef(null);
-  const snowflakesRef = useRef([]);
-  const colorTimelineRef = useRef(null);
+/**
+ * Natural-looking snowfall drawn on a single canvas.
+ *
+ * Soft, white flakes in many depth layers (far = small/slow/faint, near =
+ * big/fast/bright), each swaying on its own path, pushed together by gentle
+ * wind and occasional gusts, with a few crystal-shaped flakes up close.
+ * See src/lib/snow.js for the maths.
+ *
+ * Settings used: `enabled`, `count` (density), `speed` (bigger = slower, as
+ * before). The glyph and colour settings only apply to the terminal version.
+ */
+
+// Soft round flake: bright core fading smoothly to nothing.
+function makeSoftSprite() {
+  const size = 64;
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  grad.addColorStop(0, 'rgba(255,255,255,1)');
+  grad.addColorStop(0.3, 'rgba(255,255,255,0.9)');
+  grad.addColorStop(0.65, 'rgba(235,245,255,0.28)');
+  grad.addColorStop(1, 'rgba(235,245,255,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, size, size);
+  return c;
+}
+
+// Six-armed crystal with little side branches, with a faint glow behind it.
+function makeCrystalSprite() {
+  const size = 96;
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+  const mid = size / 2;
+
+  const glow = g.createRadialGradient(mid, mid, 0, mid, mid, mid);
+  glow.addColorStop(0, 'rgba(255,255,255,0.35)');
+  glow.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = glow;
+  g.fillRect(0, 0, size, size);
+
+  g.strokeStyle = 'rgba(255,255,255,0.95)';
+  g.lineCap = 'round';
+  g.translate(mid, mid);
+  const arm = mid - 8;
+  for (let i = 0; i < 6; i++) {
+    g.save();
+    g.rotate((i * Math.PI) / 3);
+    g.lineWidth = 3;
+    g.beginPath();
+    g.moveTo(0, 0);
+    g.lineTo(0, -arm);
+    g.stroke();
+    g.lineWidth = 2;
+    for (const at of [0.45, 0.72]) {
+      const y = -arm * at;
+      const len = arm * (at === 0.45 ? 0.32 : 0.22);
+      g.beginPath();
+      g.moveTo(0, y);
+      g.lineTo(-len, y - len);
+      g.moveTo(0, y);
+      g.lineTo(len, y - len);
+      g.stroke();
+    }
+    g.restore();
+  }
+  return c;
+}
+
+export default function Snowflakes({ enabled = true, count = 40, speed = 4500 }) {
+  const canvasRef = useRef(null);
 
   useEffect(() => {
-    if (!enabled || !containerRef.current) return;
+    const canvas = canvasRef.current;
+    if (!enabled || !canvas) return;
 
-    const container = containerRef.current;
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-    const snowflakes = [];
+    const ctx = canvas.getContext('2d');
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const soft = makeSoftSprite();
+    const crystal = makeCrystalSprite();
+    const fall = speedScale(speed) * (reduced ? 0.5 : 1);
+    const wind = createWind(Math.random, !reduced);
 
-    // Create snowflake elements with more natural properties
-    // Use grid-based distribution with jitter for more even spacing
-    const numSnowflakes = Math.min(count, 200);
-    const gridCols = Math.ceil(Math.sqrt(numSnowflakes * (windowWidth / windowHeight)));
-    const gridRows = Math.ceil(numSnowflakes / gridCols);
-    const cellWidth = windowWidth / gridCols;
-    const cellHeight = (windowHeight + 300) / gridRows; // Extra height for off-screen start
-    
-    // Store grid info for reset callback
-    const gridInfo = { gridCols, cellWidth };
-    
-    for (let i = 0; i < numSnowflakes; i++) {
-      const snowflake = document.createElement('div');
-      snowflake.className = 'snowflake';
-      snowflake.textContent = options[Math.floor(Math.random() * options.length)];
-      
-      // Grid-based positioning with random jitter for natural look
-      const gridCol = i % gridCols;
-      const gridRow = Math.floor(i / gridCols);
-      const jitterX = (Math.random() - 0.5) * cellWidth * 0.6; // 60% jitter within cell
-      const jitterY = (Math.random() - 0.5) * cellHeight * 0.6;
-      
-      const startX = (gridCol * cellWidth) + (cellWidth / 2) + jitterX;
-      const startY = -300 - (gridRow * cellHeight) - (cellHeight / 2) + jitterY; // Start well above screen
-      
-      // More natural speed variation (smaller flakes fall slower)
-      const size = Math.random() * 0.6 + 0.4; // 0.4 to 1.0
-      const baseSpeed = speed * (0.7 + size * 0.6); // Larger = faster, but more variation
-      const fallSpeed = baseSpeed + (Math.random() * speed * 0.3);
-      
-      // Natural wind/drift effect (varies per snowflake)
-      const windStrength = (Math.random() - 0.5) * 1.5; // -0.75 to 0.75
-      const windVariation = Math.random() * 0.3 + 0.1; // How much wind varies
-      
-      // Opacity based on size (smaller = more transparent) - reduced for sparser look
-      const opacity = 0.3 + (size * 0.3); // 0.3 to 0.6 (reduced from 0.4-0.8)
-      
-      snowflake.style.position = 'absolute';
-      snowflake.style.left = `${startX}px`;
-      snowflake.style.top = `${startY}px`;
-      snowflake.style.fontSize = `${size * 1.5}em`;
-      snowflake.style.color = color;
-      snowflake.style.opacity = opacity;
-      snowflake.style.pointerEvents = 'none';
-      snowflake.style.userSelect = 'none';
-      snowflake.style.zIndex = '10';
-      snowflake.style.transformOrigin = 'center center';
-      
-      container.appendChild(snowflake);
-      snowflakes.push({ 
-        element: snowflake, 
-        windStrength, 
-        windVariation,
-        fallSpeed,
-        size,
-        startX 
-      });
-    }
+    let width = 0;
+    let height = 0;
+    let flakes = [];
 
-    snowflakesRef.current = snowflakes;
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const prevW = width;
+      const prevH = height;
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // Animate each snowflake with more natural physics
-    snowflakes.forEach((snowflake, index) => {
-      const { element, windStrength, windVariation, fallSpeed, size, startX } = snowflake;
-      
-      // Create a timeline for more complex animation
-      const timeline = gsap.timeline({ repeat: -1 });
-      
-      // Falling animation with natural easing (simulates gravity/air resistance)
-      // Using "power1.out" for natural deceleration, or "sine.inOut" for gentle sway
-      const fallDuration = fallSpeed / 1000;
-      
-      // Horizontal drift with wind variation (sine wave pattern)
-      const driftDistance = windStrength * (windowWidth * 0.3); // Max 30% of screen width
-      
-      // Falling with natural physics
-      timeline.to(element, {
-        y: windowHeight + 100,
-        x: `+=${driftDistance}`,
-        duration: fallDuration,
-        ease: 'power1.out', // Natural deceleration
-        onComplete: () => {
-          // Reset position when off-screen - use grid-based distribution again
-          const resetGridCol = Math.floor(Math.random() * gridInfo.gridCols);
-          const resetJitterX = (Math.random() - 0.5) * gridInfo.cellWidth * 0.6;
-          const newX = (resetGridCol * gridInfo.cellWidth) + (gridInfo.cellWidth / 2) + resetJitterX;
-          gsap.set(element, {
-            x: newX,
-            y: -300 - Math.random() * 200, // Start well above screen
-          });
-        },
-      });
-      
-      // Add rotation/tumbling effect (more rotation for larger flakes)
-      gsap.to(element, {
-        rotation: 360 * (Math.random() > 0.5 ? 1 : -1), // Random direction
-        duration: fallDuration * (0.8 + Math.random() * 0.4), // Vary rotation speed
-        ease: 'none',
-        repeat: -1,
-      });
-      
-      // Add subtle horizontal sway (wind effect) - sine wave pattern
-      const swayAmount = windVariation * 30; // Max 30px sway
-      gsap.to(element, {
-        x: `+=${swayAmount}`,
-        duration: 2 + Math.random() * 2, // 2-4 seconds per sway cycle
-        ease: 'sine.inOut',
-        yoyo: true,
-        repeat: -1,
-      });
-      
-      // Add subtle scale pulsing (like twinkling)
-      gsap.to(element, {
-        scale: 0.9 + Math.random() * 0.2, // 0.9 to 1.1
-        duration: 1.5 + Math.random() * 1, // 1.5-2.5 seconds
-        ease: 'sine.inOut',
-        yoyo: true,
-        repeat: -1,
-      });
-      
-      // Store animation references
-      snowflake.timeline = timeline;
-    });
-
-    // Color rotation animation
-    if (rotateColors && colorRotationOptions.length > 0) {
-      const colorMap = {
-        cyan: '#00ffff',
-        magenta: '#ff00ff',
-        yellow: '#ffff00',
-        blue: '#0080ff',
-        green: '#00ff00',
-        red: '#ff0000',
-        white: '#ffffff',
-        gray: '#808080',
-      };
-
-      const colorTimeline = gsap.timeline({ repeat: -1 });
-      colorRotationOptions.forEach((colorOption, index) => {
-        colorTimeline.to(snowflakes.map(s => s.element), {
-          color: colorMap[colorOption] || colorOption,
-          duration: colorRotationFrequency / colorRotationOptions.length,
-          ease: 'sine.inOut', // Smooth color transitions
-        });
-      });
-
-      colorTimelineRef.current = colorTimeline;
-    }
-
-    // Handle window resize
-    const handleResize = () => {
-      snowflakes.forEach(snowflake => {
-        if (snowflake.timeline) {
-          snowflake.timeline.kill();
-        }
-        // Recreate animations with new dimensions
-        const newWidth = window.innerWidth;
-        const newHeight = window.innerHeight;
-        const { element, windStrength, fallSpeed } = snowflake;
-        
-        const newTimeline = gsap.timeline({ repeat: -1 });
-        newTimeline.to(element, {
-          y: newHeight + 100,
-          x: `+=${windStrength * (newWidth * 0.3)}`,
-          duration: fallSpeed / 1000,
-          ease: 'power1.out',
-          onComplete: () => {
-            gsap.set(element, {
-              x: Math.random() * newWidth,
-              y: -20,
-            });
-          },
-        });
-        snowflake.timeline = newTimeline;
-      });
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      snowflakes.forEach(snowflake => {
-        if (snowflake.timeline) {
-          snowflake.timeline.kill();
-        }
-        // Kill all GSAP animations on this element
-        gsap.killTweensOf(snowflake.element);
-      });
-      if (colorTimelineRef.current) {
-        colorTimelineRef.current.kill();
+      const target = flakeCount(count, width, height, reduced);
+      if (flakes.length === 0) {
+        flakes = Array.from({ length: target }, () => createFlake(width, height));
+        return;
       }
-      snowflakes.forEach(snowflake => {
-        if (snowflake.element.parentNode) {
-          snowflake.element.parentNode.removeChild(snowflake.element);
+      // Keep the existing snowfall; just rescale it to the new window size
+      // and add or remove flakes to match the new density.
+      for (const f of flakes) {
+        f.x = (f.x / prevW) * width;
+        f.y = (f.y / prevH) * height;
+        f.landY = (f.landY / prevH) * height;
+      }
+      while (flakes.length < target) flakes.push(createFlake(width, height, Math.random, true));
+      if (flakes.length > target) flakes.length = target;
+    }
+
+    resize();
+    window.addEventListener('resize', resize);
+
+    let raf = 0;
+    let last = performance.now();
+    let time = 0;
+
+    function frame(now) {
+      // Clamp dt so a background tab coming back doesn't teleport the snow.
+      const dt = Math.min((now - last) / 1000, 0.05);
+      last = now;
+      time += dt;
+      const w = wind.step(dt);
+
+      ctx.clearRect(0, 0, width, height);
+
+      // Draw far flakes first so near ones overlap them.
+      flakes.sort((a, b) => a.z - b.z);
+      for (let i = 0; i < flakes.length; i++) {
+        let f = flakes[i];
+        stepFlake(f, dt, time, w, fall, width);
+        if (f.dead) {
+          // Recycle as a brand-new flake just above the top.
+          f = flakes[i] = createFlake(width, height, Math.random, false);
         }
-      });
+        const a = f.alpha * f.fade;
+        if (a <= 0.01) continue;
+        ctx.globalAlpha = a;
+        if (f.crystal) {
+          const s = f.radius * 7;
+          ctx.save();
+          ctx.translate(f.x, f.y);
+          ctx.rotate(f.angle);
+          ctx.drawImage(crystal, -s / 2, -s / 2, s, s);
+          ctx.restore();
+        } else {
+          const s = f.radius * 3.6;
+          ctx.drawImage(soft, f.x - s / 2, f.y - s / 2, s, s);
+        }
+      }
+      ctx.globalAlpha = 1;
+      raf = requestAnimationFrame(frame);
+    }
+    raf = requestAnimationFrame(frame);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', resize);
     };
-  }, [enabled, count, speed, options, color, rotateColors, colorRotationOptions, colorRotationFrequency]);
+  }, [enabled, count, speed]);
 
   if (!enabled) return null;
 
   return (
-    <div
-      ref={containerRef}
-      className="snowflakes-container"
+    <canvas
+      ref={canvasRef}
+      aria-hidden="true"
       style={{
         position: 'fixed',
         top: 0,
         left: 0,
-        width: '100%',
-        height: '100%',
         pointerEvents: 'none',
         zIndex: 10,
       }}

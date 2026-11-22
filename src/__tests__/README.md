@@ -4,7 +4,7 @@ This directory contains comprehensive functional tests for the New Year Countdow
 
 ## Test Files
 
-- **config.test.js** - Tests for configuration loading and validation
+- **config.test.js** - Tests the real settings code: defaults, validation (including older saved settings), saving and loading, snow levels, and the date picker helpers (`config.js`, `dateInput.js`)
 - **countdown.test.js** - Tests for countdown time calculations
 - **sayWords.test.js** - Tests for audio/speech triggers at specific times
 - **fontRotation.test.js** - Tests for font rotation logic
@@ -16,6 +16,9 @@ This directory contains comprehensive functional tests for the New Year Countdow
 - **utils.test.js** - Tests for utility functions and helpers
 - **defaultTargetDate.test.js** - Tests the real `getNextNewYear()` helper and the default target date (imports the actual code)
 - **audioFile.test.js** - Tests the real `playAudioFile()`: plays audio, skips the homepage HTML returned for a missing file, handles network errors (imports the actual code)
+- **snow.test.js** - Tests the real snow maths in `src/lib/snow.js`: density, depth layers, wind gusts, landing and fading (imports the actual code)
+- **moon.test.js** - Tests the real moon phase maths in `src/lib/moon.js`, including checks against real new and full moon times and the "full at midnight" countdown phase (imports the actual code)
+- **characters.test.js** - Tests the real character logic: lanes (`world.js`), walking and following (`wander.js`), posing helpers (`pose.js`) the scenery layout and owl perches (`scene.js`), the owl's flight path (`flight.js`), off-screen walks, and the self-talk rules (`chatter.js`) (imports the actual code)
 
 ## Running Tests
 

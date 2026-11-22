@@ -1,18 +1,20 @@
 'use client';
 
 import { useConfig } from '../hooks/useConfig';
+import { snowSettings } from '../lib/config';
 import { useCountdown } from '../hooks/useCountdown';
 import { useAudio } from '../hooks/useAudio';
 import CountdownDisplay from '../components/CountdownDisplay';
 import Snowflakes from '../components/Snowflakes';
 import Fireworks from '../components/Fireworks';
-import Yeti from '../components/Yeti';
+import Characters from '../components/characters/Characters';
 import Scenery from '../components/Scenery';
 import Link from 'next/link';
 
 export default function HomePage() {
   const { config, loading } = useConfig();
   const countdown = useCountdown(config?.targetDate);
+  const snow = snowSettings(config?.snowflakes);
   
   // Handle audio announcements
   useAudio(countdown.hours, countdown.minutes, countdown.seconds);
@@ -41,23 +43,14 @@ export default function HomePage() {
       overflow: 'hidden',
     }}>
       {/* Background Scenery */}
-      <Scenery />
+      <Scenery targetDate={config.targetDate} />
 
-      {/* Yeti Character */}
-      <Yeti celebrating={countdown.isExpired} />
+      {/* The yeti and his friends */}
+      <Characters celebrating={countdown.isExpired} hoursLeft={countdown.total > 0 ? countdown.hours : null} />
 
       {/* Snowflakes - stop when countdown expires */}
       {config.snowflakes?.enabled && !countdown.isExpired && (
-        <Snowflakes
-          enabled={config.snowflakes.enabled}
-          count={config.snowflakes.count}
-          speed={config.snowflakes.speed}
-          options={config.snowflakes.options}
-          color={config.snowflakes.color?.value}
-          rotateColors={config.snowflakes.color?.rotate}
-          colorRotationOptions={config.snowflakes.color?.rotationOptions}
-          colorRotationFrequency={config.snowflakes.color?.frequency}
-        />
+        <Snowflakes enabled count={snow.count} speed={snow.speed} />
       )}
 
       {/* Fireworks - show when countdown expires */}
@@ -81,11 +74,9 @@ export default function HomePage() {
           rotateFonts={config.font?.rotate}
           fontRotationOptions={config.font?.rotationOptions}
           defaultFont={config.font?.name}
-          rotateFrequency={config.font?.frequency}
           color={config.color?.value}
           rotateColors={config.color?.rotate}
           colorRotationOptions={config.color?.rotationOptions}
-          colorRotationFrequency={config.color?.frequency}
           isGreen={countdown.isGreen}
         />
       </div>

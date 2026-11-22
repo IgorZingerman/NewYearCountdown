@@ -2,16 +2,18 @@
 
 I saw this: https://github.com/coord-e/new-year-countdown/tree/master and i loved the idea. That repository has gone the way of the dodo, and is not supported. I figured I'd mess with this a bit. So, i spent a little bit of time and threw this together. 
 
-A festive New Year countdown website with falling snow, a cute waddling yeti, a mountain scene with twinkling stars, and a fireworks finale (with a very excited yeti) when the clock hits zero.
+A festive New Year countdown website: a moonlit snowy night with natural falling snow, a cosy yeti and his friends (a bear cub, a penguin, a bunny, a snowman and an owl) you can click, and a fireworks finale with a party when the clock hits zero.
 
 ## Features
 
 - ⏰ Live countdown to a target date (defaults to the next January 1st at your local midnight)
 - 🎨 Font and color rotation for the countdown display
-- ❄️ Falling snowflakes (GSAP), configurable count, speed, symbols and colors
-- 🦣 A yeti that waddles across the screen
-- 🎆 At zero: canvas fireworks, and the yeti runs to the center, throws his arms up and jumps
-- 🏔️ Mountain scenery with twinkling stars
+- ❄️ Natural snow on a canvas: soft flakes in depth layers, swaying, gusts of wind, a few crystals (amount and speed are configurable)
+- 🦣 A yeti in a beanie and scarf who wanders, looks around, waves and puffs his breath in the cold
+- 🐻‍❄️🐧🐰⛄🦉 His friends: a bear cub who follows him, a penguin who waddles and belly-slides, a bunny who hops, a snowman who comes alive at midnight, and an owl who flies from tree to tree. They chat on their own (sometimes about how long is left, and sometimes with a knock-knock joke passed between them), the penguin and bunny occasionally wander off-screen and come back, and you can click any of them!
+- 🎆 At zero: canvas fireworks, and everyone gathers, puts on a party hat and jumps for joy
+- 🌙 A moon that waxes as New Year approaches and is full at midnight
+- 🏔️ Snowy mountains and ground, pine trees with twinkling lights, twinkling stars and shooting stars
 - 🔊 Spoken announcements (Web Speech API) at 1 hour, 20 minutes, 30 seconds, and the final 10 seconds, plus optional final-countdown music (see below)
 - ⚙️ Settings page (`/settings`), saved in your browser's `localStorage`
 
@@ -49,13 +51,19 @@ Clear it afterwards with `localStorage.removeItem('countdown-config')`. You can 
 
 ## Configuration
 
-Settings are edited on the `/settings` page and stored in `localStorage` under `countdown-config`. Defaults live in `src/lib/config.js`.
+Settings are edited on the `/settings` page and stored in `localStorage` under `countdown-config`. Defaults live in `src/lib/config.js`. You can change:
+
+- **Countdown:** the target date and time (with quick picks for the next hour, tomorrow midnight and the next New Year) and the message shown at midnight
+- **The numbers:** the font and colour, or tick "change every few seconds" and choose which fonts and colours to cycle through
+- **Snow:** on or off, how much (light, normal, heavy) and how fast (slow, normal, fast)
+
+The target date is only remembered if you pick something other than the next New Year, so by default the site rolls over to the following year by itself. The terminal version has its own config in `src/cli/config.js` and is not affected by this page.
 
 - Target date and time (your local time)
 - Celebration message
 - Font selection and rotation
 - Countdown color and rotation
-- Snowflake count, speed, symbols and colors
+- Amount of snow and its speed (the symbol and colour options only apply to the terminal version)
 
 ## Final-countdown music (optional)
 
@@ -103,9 +111,10 @@ The `.htaccess` in the repo root handles HTTPS redirect and routing, and needs `
 ## Project structure
 
 - `src/app/` - Next.js App Router: `page.js` (countdown), `settings/` (settings page), `layout.js`, `icon.svg` (favicon)
-- `src/components/` - `CountdownDisplay`, `Snowflakes`, `Yeti`, `Fireworks`, `Scenery`, `SettingsForm`
+- `src/components/` - `CountdownDisplay`, `Snowflakes`, `Fireworks`, `Scenery`, `Moon`, `SettingsForm`
+- `src/components/characters/` - the yeti and his friends (`Actor` is the shared shell, one file per character)
 - `src/hooks/` - `useConfig`, `useCountdown`, `useAudio`
-- `src/lib/` - `config.js` (defaults and validation), `audio.js` (announcements)
+- `src/lib/` - `config.js` (defaults and validation), `audio.js` (announcements), and the tested logic for snow, moon, and character movement (`snow.js`, `moon.js`, `world.js`, `wander.js`, `pose.js`, `scene.js`)
 - `src/cli/` - the original terminal (Ink) version, kept for reference (`npm run build:cli && npm run start:cli`)
 - `public/` - static files copied as-is into the export (e.g. `public/music/`)
 - `src/__tests__/` - Jest tests
@@ -119,12 +128,11 @@ The `.htaccess` in the repo root handles HTTPS redirect and routing, and needs `
 npm test
 ```
 
-Many of the older tests re-implement the logic they check instead of importing it. `defaultTargetDate.test.js` and `audioFile.test.js` import the real code and are a good model for new tests.
+Many of the older tests re-implement the logic they check instead of importing it. `config.test.js`, `defaultTargetDate.test.js` and `audioFile.test.js` import the real code and are a good model for new tests.
 
 ## Known issues
 
-- **Config defaults:** `validateConfig` in `src/lib/config.js` shallow-copies the defaults and then edits nested objects, so shared defaults can get modified.
-- **Old saved dates:** a date saved from `/settings` stays in that browser's `localStorage` even after a new default ships, so it can keep showing an old, expired date until it's changed or cleared.
+- **Old saved dates:** a date saved before the settings cleanup stays in that browser's `localStorage` even after a new default ships, so it can keep showing an old, expired date. Pressing Reset to Defaults on `/settings` clears it. New saves only keep a date you changed yourself.
 - **Unknown URLs return 200:** the `.htaccess` fallback serves the homepage for any unknown path, so there are no real 404s.
 - **Hours, not days:** the countdown shows total hours (e.g. `963:55:41`).
 - **Older tests:** many re-implement logic instead of testing the real code.

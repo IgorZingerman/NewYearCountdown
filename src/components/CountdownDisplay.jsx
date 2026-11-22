@@ -13,6 +13,9 @@ const COLOR_MAP = {
   gray: '#808080',
 };
 
+// How often the font and the colour change, when rotating (seconds).
+const ROTATE_SECONDS = 10;
+
 export default function CountdownDisplay({
   hours,
   minutes,
@@ -23,11 +26,9 @@ export default function CountdownDisplay({
   rotateFonts = false,
   fontRotationOptions = [],
   defaultFont = 'huge',
-  rotateFrequency = 10,
   color = null,
   rotateColors = false,
   colorRotationOptions = [],
-  colorRotationFrequency = 5,
   isGreen = true,
 }) {
   const [currentFont, setCurrentFont] = useState(defaultFont);
@@ -41,7 +42,7 @@ export default function CountdownDisplay({
       setCurrentFont(fontRotationOptions[0]);
       setFontIndex(0);
 
-      const intervalMs = (rotateFrequency || 10) * 1000;
+      const intervalMs = ROTATE_SECONDS * 1000;
       const interval = setInterval(() => {
         setFontIndex((prevIndex) => {
           const nextIndex = (prevIndex + 1) % fontRotationOptions.length;
@@ -54,7 +55,7 @@ export default function CountdownDisplay({
     } else {
       setCurrentFont(defaultFont);
     }
-  }, [rotateFonts, fontRotationOptions, defaultFont, rotateFrequency]);
+  }, [rotateFonts, fontRotationOptions, defaultFont]);
 
   // Color rotation logic
   useEffect(() => {
@@ -62,7 +63,7 @@ export default function CountdownDisplay({
       setCurrentColor(colorRotationOptions[0]);
       setColorIndex(0);
 
-      const intervalMs = (colorRotationFrequency || 5) * 1000;
+      const intervalMs = ROTATE_SECONDS * 1000;
       const interval = setInterval(() => {
         setColorIndex((prevIndex) => {
           const nextIndex = (prevIndex + 1) % colorRotationOptions.length;
@@ -77,7 +78,7 @@ export default function CountdownDisplay({
     } else {
       setCurrentColor(null);
     }
-  }, [rotateColors, colorRotationOptions, color, colorRotationFrequency]);
+  }, [rotateColors, colorRotationOptions, color]);
 
   // Determine display color
   let displayColor;
