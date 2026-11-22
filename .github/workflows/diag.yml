@@ -1,0 +1,56 @@
+name: Runner connectivity test (temporary, do not merge)
+
+# Temporary: checks whether GitHub's runners can reach the live site.
+# The URL comes from the repository variable DIAG_URL and is masked in the logs.
+on:
+  pull_request:
+    paths: ['.github/workflows/diag.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DIAG_URL: ${{ vars.DIAG_URL }}
+    steps:
+      - name: Probe the site from this runner
+        run: |
+          set +e
+          [ -n "$DIAG_URL" ] || { echo "DIAG_URL is not set"; exit 1; }
+          echo "::add-mask::$DIAG_URL"
+          host=$(printf '%s' "$DIAG_URL" | sed -E 's#^https?://([^/]+).*#\1#')
+          echo "::add-mask::$host"
+          probe() {
+            # $1 = label, rest = curl args
+            label="$1"; shift
+            out=$(curl -sS --connect-timeout 10 --max-time 20 -o /dev/null \
+              -w 'http=%{http_code} ip=%{remote_ip} connect=%{time_connect}s total=%{time_total}s' "$@" 2>&1)
+            echo "$label: $out"
+          }
+
+          echo "== Runner"
+          echo "public IP: $(curl -s -m 10 https://api.ipify.org)"
+          echo "== Control: a neutral site"
+          probe "example.com https" https://example.com/
+
+          echo "== DNS for the site"
+          getent ahosts "$host" | awk '{print $1, $2}' | sort -u
+
+          echo "== TCP reachability"
+          for port in 80 443; do
+            if timeout 8 bash -c "exec 3<>/dev/tcp/$host/$port" 2>/dev/null; then echo "port $port: open"; else echo "port $port: NO connection within 8s"; fi
+          done
+
+          echo "== Requests, 3 rounds"
+          for round in 1 2 3; do
+            probe "round $round https (default)" "$DIAG_URL"
+            probe "round $round https (IPv4 only)" -4 "$DIAG_URL"
+            probe "round $round https (IPv6 only)" -6 "$DIAG_URL"
+            probe "round $round http" "http://$host/"
+            probe "round $round https (browser User-Agent)" -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36' "$DIAG_URL"
+            sleep 5
+          done
+          echo "== Done"
