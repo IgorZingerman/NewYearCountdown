@@ -22,7 +22,7 @@ npm run deploy
 4. **Builds the application** - Runs Next.js static export build
 5. **Verifies output** - Ensures `out` directory and required files exist
 6. **Copies .htaccess** - Ensures Apache configuration is included
-7. **Optional SFTP deployment** - Generates rsync command and copies it to clipboard for manual deployment
+7. **Optional SFTP deployment** - Prints two rsync commands, a dry run (copied to the clipboard) and the real upload, with the same safety settings as the GitHub deploy
 
 ### Configuration (.env file)
 
@@ -49,7 +49,12 @@ After building, the script will ask if you want to deploy via SFTP/SCP. If you c
 - **Username** (defaults from `.env` file if set, otherwise required)
 - **Remote path** (defaults from `.env` file if set, otherwise required)
 
-The script will then generate an `rsync` command and copy it to your clipboard. You can paste and run the command manually, which will prompt you for your password securely.
+The script will then print two `rsync` commands and copy the first one to your clipboard:
+
+1. **A dry run** (`rsync -n`): changes nothing and lists what would change. Lines starting with `*deleting` are files that would be removed from the server.
+2. **The upload**: run it only once the dry run looks right.
+
+Both use the same safety settings as the GitHub deploy: deletions happen only after a successful upload, the upload stops if more than 50 files would be deleted, the host's own folders (`.well-known`, `cgi-bin`, `stats`, `logs`) are never touched, and SSH must already know the server's host key (`StrictHostKeyChecking=yes`). If SSH says "Host key verification failed", check the fingerprint with `ssh-keyscan <host> | ssh-keygen -lf -`, compare it with the one your host publishes, then connect once with `ssh <user>@<host>` to save it. The script also refuses remote paths like `/`, `~` or anything with `..`.
 
 ### Output
 
