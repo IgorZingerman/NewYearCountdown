@@ -10,13 +10,13 @@
     "build:static": "next build && cp .htaccess out/.htaccess 2>/dev/null || true",
     "deploy": "./scripts/deploy.sh",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
-    "build:cli": "babel --config-file ./.babel/babel.config.cjs --out-dir=dist src/cli",
+    "build:cli": "babel --config-file ./.babel/babel.config.cjs --out-dir=dist/cli src/cli",
     "start:cli": "node dist/cli/index.js",
-    "dev:cli": "babel --config-file ./.babel/babel.config.cjs --out-dir=dist --watch src/cli",
+    "dev:cli": "babel --config-file ./.babel/babel.config.cjs --out-dir=dist/cli --watch src/cli",
     "transpile": "mkdir -p dist/cli && babel --config-file ./.babel/babel.config.cjs src/cli/index.js > dist/cli/index.js",
     "prepublish": "npm run transpile",
     "preview-fonts": "babel --config-file ./.babel/babel.config.cjs src/cli/preview-fonts.js --out-file dist/cli/preview-fonts.js && node dist/cli/preview-fonts.js"
@@ -43,6 +43,8 @@
     "@babel/preset-react": "^7.23.3",
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.0.8",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0"
   }

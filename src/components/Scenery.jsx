@@ -1,7 +1,19 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
+
+function generateStars(count) {
+  const stars = [];
+  for (let i = 0; i < count; i++) {
+    stars.push({
+      x: Math.random() * 100,
+      y: Math.random() * 50,
+      size: Math.random() * 2 + 1,
+    });
+  }
+  return stars;
+}
 
 export default function Scenery() {
   const skyRef = useRef(null);
@@ -35,20 +47,9 @@ export default function Scenery() {
     }
   }, []);
 
-  // Generate random star positions
-  const generateStars = (count) => {
-    const stars = [];
-    for (let i = 0; i < count; i++) {
-      stars.push({
-        x: Math.random() * 100,
-        y: Math.random() * 50,
-        size: Math.random() * 2 + 1,
-      });
-    }
-    return stars;
-  };
-
-  const stars = generateStars(50);
+  // Generate random star positions once. (Generating them during render would
+  // reshuffle every star each time the page re-renders, i.e. every second.)
+  const [stars] = useState(() => generateStars(50));
 
   return (
     <div className="scenery-container">

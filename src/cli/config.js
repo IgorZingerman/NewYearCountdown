@@ -1,5 +1,11 @@
+// Next January 1st at midnight in local time (always next year's, since this year's has started).
+// Kept local to the CLI: the CLI is built on its own into dist/cli and can't import from src/lib.
+export function getNextNewYear(now = new Date()) {
+  return new Date(now.getFullYear() + 1, 0, 1, 0, 0, 0, 0).toISOString();
+}
+
 export default {
-  "targetDate": "2026-01-01T00:00:00.000Z",
+  "targetDate": getNextNewYear(),
   "description": "New Year countdown configuration",
   "celebrationMessage": "🎉 Happy New Year! 🎉",
   

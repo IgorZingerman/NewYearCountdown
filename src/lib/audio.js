@@ -30,15 +30,26 @@ function speak(text) {
 }
 
 /**
- * Play audio file (for final countdown music)
+ * Play audio file (for final countdown music).
+ *
+ * The file is served from public/music/ (it is not committed to the repo).
+ * On the static Apache host, a missing file is answered with the homepage HTML
+ * (the SPA fallback returns 200), so check the response before trying to play it.
  */
-function playAudioFile(url) {
+async function playAudioFile(url) {
   if (typeof window === 'undefined') return;
-  
+
   try {
+    const response = await fetch(url, { method: 'HEAD' });
+    const contentType = response.headers.get('content-type') || '';
+    if (!response.ok || contentType.includes('text/html')) {
+      console.warn(`Audio file not available at ${url}. Add it under public/music/ to enable it.`);
+      return;
+    }
+
     const audio = new Audio(url);
     audio.volume = 0.7;
-    audio.play().catch(error => {
+    await audio.play().catch(error => {
       console.error('Audio playback error:', error);
       // Browser may block autoplay - user interaction required
     });

@@ -5,7 +5,7 @@ import BigText from "ink-big-text";
 import Spinner from "ink-spinner";
 import Gradient from "ink-gradient";
 import { exec, spawn } from "child_process";
-import config from "./config.js";
+import config, { getNextNewYear } from "./config.js";
 
 // Custom hook to get terminal dimensions and update on resize
 const useTerminalDimensions = () => {
@@ -242,9 +242,9 @@ try {
   console.error(`[INFO] Loaded target date from config: ${NEWYEAR.toISOString()}`);
 } catch (error) {
   console.error(`[ERROR] Failed to load config.json: ${error.message}`);
-  console.error(`[INFO] Falling back to default date: January 1, 2025`);
-  // Fallback to default date
-  NEWYEAR = new Date(2025, 0, 1, 0, 0, 0, 0);
+  // Fallback to the next January 1st at local midnight
+  NEWYEAR = new Date(getNextNewYear());
+  console.error(`[INFO] Falling back to default date: ${NEWYEAR.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`);
 }
 
 // Prevent screen saver from launching (macOS only)
@@ -386,12 +386,13 @@ const FallingSnowflakes = ({ enabled, count, characters, terminalWidth, terminal
     return () => clearInterval(interval);
   }, [enabled, count, characters, terminalWidth, terminalHeight, speed]);
 
-  if (!enabled || count <= 0 || !characters || characters.length === 0) {
-    return null;
-  }
+  const isActive = Boolean(enabled && count > 0 && characters && characters.length > 0);
 
-  // Optimize grid creation with useMemo to avoid recreating on every render
+  // Optimize grid creation with useMemo to avoid recreating on every render.
+  // Hooks must run on every render (before any early return), so the guard comes after.
   const grid = useMemo(() => {
+    if (!isActive) return [];
+
     const gridArray = Array(terminalHeight).fill(null).map(() => 
       Array(terminalWidth).fill(" ")
     );
@@ -409,7 +410,11 @@ const FallingSnowflakes = ({ enabled, count, characters, terminalWidth, terminal
     });
 
     return gridArray;
-  }, [snowflakePositions, terminalWidth, terminalHeight, characters]);
+  }, [isActive, snowflakePositions, terminalWidth, terminalHeight, characters]);
+
+  if (!isActive) {
+    return null;
+  }
 
   // Render the grid as text lines with color
   return (
@@ -421,8 +426,8 @@ const FallingSnowflakes = ({ enabled, count, characters, terminalWidth, terminal
   );
 };
 
-const Happy = ({ terminalWidth }) => {
-  const options = [
+// Defined at module level so the array identity is stable across renders
+const HAPPY_GRADIENT_OPTIONS = [
     "cristal",
     "teen",
     "mind",
@@ -436,12 +441,14 @@ const Happy = ({ terminalWidth }) => {
     "summer",
     "pastel",
     "rainbow",
-  ];
-  const [gradient, setGradient] = useState(options[0]);
+];
+
+const Happy = ({ terminalWidth }) => {
+  const [gradient, setGradient] = useState(HAPPY_GRADIENT_OPTIONS[0]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setGradient(options[Math.floor(Math.random() * options.length)]);
+      setGradient(HAPPY_GRADIENT_OPTIONS[Math.floor(Math.random() * HAPPY_GRADIENT_OPTIONS.length)]);
     }, 100);
     return () => clearInterval(interval);
   }, []); // Empty dependency array - only run on mount

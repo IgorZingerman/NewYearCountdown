@@ -136,3 +136,7 @@ music/*.mp3
 
 # Apache .htaccess - keep this committed for deployment
 # .htaccess should be committed
+# Audio dropped into public/music/ locally (e.g. the final countdown track).
+# Not committed: it is usually copyrighted and this repo is public.
+public/music/*
+!public/music/.gitkeep
