@@ -6,28 +6,12 @@ export function getNextNewYear(now = new Date()) {
 
 export default {
   "targetDate": getNextNewYear(),
-  "description": "New Year countdown configuration",
-  "celebrationMessage": "🎉 Happy New Year! 🎉",
   
   "font": {
     "rotate": false,
     "name": "huge",
     "frequency": 5,
-    "rotationOptions": ["huge", "slick", "tiny", "grid", "pallet", "shade", "simple", "simpleBlock", "3d", "simple3d", "chrome"],
-    "availableOptions": [
-      "block",
-      "slick",
-      "tiny",
-      "grid",
-      "pallet",
-      "shade",
-      "simple",
-      "simpleBlock",
-      "3d",
-      "simple3d",
-      "chrome",
-      "huge"
-    ]
+    "rotationOptions": ["huge", "slick", "tiny", "grid", "pallet", "shade", "simple", "simpleBlock", "3d", "simple3d", "chrome"]
   },
   
   "color": {
@@ -40,6 +24,7 @@ export default {
   "snowflakes": {
     "enabled": true,
     "count": 40,
+    // Milliseconds a flake takes to fall from top to bottom (bigger = slower), like on the website
     "speed": 4500,
     "options": ["❄", "❅", "❆", "✻", "✼", "✽", "✾", "✿", "❀", "❁"],
     "color": {
