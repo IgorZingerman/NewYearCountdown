@@ -159,34 +159,70 @@ if [[ "$DEPLOY_ANSWER" =~ ^[Yy]$ ]]; then
         fi
     fi
     
+    # Same safety checks as the GitHub deploy (.github/workflows/deploy.yml):
+    # refuse paths that could make --delete wipe more than the site folder, and only
+    # allow plain characters so the printed command can't run anything unexpected.
+    case "$SFTP_PATH" in
+        ""|"/"|"."|"./"|"~"|"~/"|*".."*)
+            echo -e "${RED}✗ Error: Remote path is not a safe site folder${NC}"
+            exit 1 ;;
+    esac
+    if ! printf '%s' "$SFTP_PATH" | grep -Eq '^[A-Za-z0-9._/~-]+$'; then
+        echo -e "${RED}✗ Error: Remote path contains unexpected characters${NC}"
+        exit 1
+    fi
+    if ! printf '%s' "$SFTP_HOST" | grep -Eq '^[A-Za-z0-9.-]+$' || ! printf '%s' "$SFTP_USER" | grep -Eq '^[A-Za-z0-9._-]+$'; then
+        echo -e "${RED}✗ Error: Host or username contains unexpected characters${NC}"
+        exit 1
+    fi
+
+    # Web-readable permissions on the server (rsync -p carries these over). Set here rather
+    # than with rsync --chmod, which the openrsync that ships with macOS doesn't support.
+    find out -type d -exec chmod 755 {} +
+    find out -type f -exec chmod 644 {} +
+
     echo ""
-    echo -e "${BLUE}📋 Generating rsync command...${NC}"
-    
-    # Generate the rsync command
-    RSYNC_CMD="rsync -avz --delete -e \"ssh -o StrictHostKeyChecking=no\" \"$PROJECT_DIR/out/\" \"$SFTP_USER@$SFTP_HOST:$SFTP_PATH/\""
-    
-    # Copy to clipboard (macOS)
+    echo -e "${BLUE}📋 Generating rsync commands...${NC}"
+
+    # The same flags as the GitHub deploy: deletes only after a successful upload, abort if
+    # more than 50 files would be deleted, and never touch the host's own folders.
+    # The SSH host key must already be known (no blind trust).
+    RSYNC_OPTS="-rltpz --itemize-changes --delete-after --max-delete=50 --exclude='/.well-known/' --exclude='/cgi-bin/' --exclude='/stats/' --exclude='/logs/' --exclude='/.dh-diag' --exclude='.gitkeep'"
+    RSYNC_SSH="ssh -o StrictHostKeyChecking=yes"
+    RSYNC_TARGET="\"$PROJECT_DIR/out/\" \"$SFTP_USER@$SFTP_HOST:$SFTP_PATH/\""
+    DRY_RUN_CMD="rsync -n $RSYNC_OPTS -e \"$RSYNC_SSH\" $RSYNC_TARGET"
+    RSYNC_CMD="rsync $RSYNC_OPTS -e \"$RSYNC_SSH\" $RSYNC_TARGET"
+
+    # Copy the dry run to the clipboard: always look before uploading
     if command -v pbcopy &> /dev/null; then
-        echo "$RSYNC_CMD" | pbcopy
-        echo -e "  ${GREEN}✓ Command copied to clipboard${NC}"
+        echo "$DRY_RUN_CMD" | pbcopy
+        echo -e "  ${GREEN}✓ Dry-run command copied to clipboard${NC}"
     elif command -v xclip &> /dev/null; then
-        echo "$RSYNC_CMD" | xclip -selection clipboard
-        echo -e "  ${GREEN}✓ Command copied to clipboard${NC}"
+        echo "$DRY_RUN_CMD" | xclip -selection clipboard
+        echo -e "  ${GREEN}✓ Dry-run command copied to clipboard${NC}"
     elif command -v xsel &> /dev/null; then
-        echo "$RSYNC_CMD" | xsel --clipboard --input
-        echo -e "  ${GREEN}✓ Command copied to clipboard${NC}"
+        echo "$DRY_RUN_CMD" | xsel --clipboard --input
+        echo -e "  ${GREEN}✓ Dry-run command copied to clipboard${NC}"
     else
         echo -e "  ${YELLOW}⚠️  Clipboard tool not found (pbcopy/xclip/xsel)${NC}"
     fi
-    
+
     echo ""
-    echo -e "${BLUE}📝 Rsync command:${NC}"
+    echo -e "${BLUE}📝 1. Dry run (changes nothing, shows what would change):${NC}"
+    echo -e "${YELLOW}$DRY_RUN_CMD${NC}"
+    echo ""
+    echo -e "${BLUE}📝 2. Upload (only after the dry run looks right):${NC}"
     echo -e "${YELLOW}$RSYNC_CMD${NC}"
     echo ""
     echo -e "${BLUE}💡 Instructions:${NC}"
-    echo "  1. Paste the command above into your terminal"
-    echo "  2. You'll be prompted for your password"
+    echo "  1. Run the dry run and check the list of changes (lines starting with *deleting are removals)"
+    echo "  2. If it looks right, run the upload command"
     echo "  3. The files will be uploaded to: $SFTP_USER@$SFTP_HOST:$SFTP_PATH"
+    echo ""
+    echo -e "${BLUE}🔑 Host key:${NC} the server's SSH key must already be in ~/.ssh/known_hosts."
+    echo "  If ssh says 'Host key verification failed', first check the fingerprint with:"
+    echo "    ssh-keyscan $SFTP_HOST | ssh-keygen -lf -"
+    echo "  compare it with the one your host publishes, and only then connect once with: ssh $SFTP_USER@$SFTP_HOST"
     echo ""
     echo -e "${GREEN}✨ Ready to deploy!${NC}"
     echo ""

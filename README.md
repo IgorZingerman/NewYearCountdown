@@ -99,14 +99,14 @@ Generate the key with `ssh-keygen -t ed25519 -N "" -C countdown-deploy -f ~/.ssh
 
 ```bash
 cp .env.example .env     # fill in DEPLOY_HOST, DEPLOY_USER, DEPLOY_PATH (gitignored)
-npm run deploy           # builds, verifies out/, and generates an rsync command
+npm run deploy           # builds, verifies out/, and prints a dry-run and an upload rsync command
 ```
 
 The script does **not** upload anything by itself. It prints the `rsync` command (and copies it to your clipboard on macOS) for you to run and enter your password.
 
 > ⚠️ That generated command uses `rsync --delete` without the protections above: anything in the remote folder that is not in `out/` will be removed (including server-managed folders such as `.well-known/`). Do a dry run first with `rsync -n`.
 
-The `.htaccess` in the repo root handles HTTPS redirect and routing, and needs `mod_rewrite`. Details are in [scripts/README.md](scripts/README.md).
+The `.htaccess` in the repo root handles HTTPS redirect, routing and security headers (HSTS, a Content Security Policy, frame and content-type protection), and needs `mod_rewrite` and `mod_headers`. Details are in [scripts/README.md](scripts/README.md).
 
 ## Project structure
 

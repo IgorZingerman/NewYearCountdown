@@ -44,9 +44,9 @@ Run `npm run lint`, `npm test` and `npm run build` before proposing a PR. The le
 | `public/` | Static files copied as-is into the export. `public/music/` holds the (gitignored) audio |
 | `eslint.config.mjs` | ESLint flat config; documents why `react-hooks/set-state-in-effect` is off |
 | `src/__tests__/` | Jest tests |
-| `scripts/deploy.sh` | Manual fallback: build + generates an `rsync` command (does not upload) |
+| `scripts/deploy.sh` | Manual fallback: build + prints a dry-run and an upload `rsync` command with the same safety flags as CI (does not upload) |
 | `.github/workflows/deploy.yml` | CI on PRs; automatic deploy to the host after a merge to `main` |
-| `.htaccess` | HTTPS redirect, SPA fallback, caching (copied into `out/` by the build) |
+| `.htaccess` | HTTPS redirect, SPA fallback, security headers (HSTS, CSP, frame and sniffing protection), caching (copied into `out/` by the build) |
 
 All animated components are client components (`'use client'`) and must clean up in the effect return (kill GSAP tweens, cancel `requestAnimationFrame`, clear timers, remove listeners). Follow the existing cleanup patterns in `Snowflakes.jsx` and `Fireworks.jsx`.
 
@@ -75,6 +75,7 @@ The snow is one canvas (`Snowflakes.jsx` + `lib/snow.js`): soft white flakes in 
 
 - **Dates:** `targetDate` is stored as an ISO (UTC) string that represents a **local** date/time. Read it back with **local** getters (`getFullYear`, `getMonth`, `getDate`, `getHours`), never `getUTC*`. The default is `getNextNewYear()` (next Jan 1, local midnight).
 - **Apache routing:** `next.config.js` sets `trailingSlash: true` so each page is `route/index.html`; without it `/settings` showed a raw directory listing on the host (Next's default `settings.html` is not found for `/settings`). `.htaccess` also returns 403 for folders without an `index.html` so file listings never appear. Test routing changes against a real Apache (for example the `httpd:2.4` Docker image with `AllowOverride All` and `Options Indexes`, using a copy of `.htaccess` without the HTTPS redirect), not just `next dev`.
+- **Security headers:** `.htaccess` sends HSTS, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, a `Referrer-Policy`, a `Permissions-Policy` and a Content Security Policy that only allows the site's own files. If you add anything loaded from another site (fonts, analytics, images), add it to the CSP or it will be blocked. Scripts and styles need `'unsafe-inline'` because the static export inlines page data in `<script>` tags and the components use style attributes. `nosniff` means every file must be served with the right content type. Check changes on the Apache test setup with the browser console open (CSP violations show there).
 - **Static export constraints** (`output: 'export'` in `next.config.js`): no API routes, no server actions, no middleware, no runtime `next/image` optimization (`images.unoptimized` is set), no server-only code. Anything that needs a server will not work on the host. New pages become `route/index.html`; the `.htaccess` fallback serves the homepage for unknown paths.
 - **Static assets:** put them in `public/` (served from `/`). `public/music/*` is gitignored on purpose: the final-countdown track is copyrighted and the repo is public. Never commit audio files; the build still copies local ones into `out/`.
 - **Stable random values:** do not call `Math.random()` during render for visuals (the page re-renders every second and everything would reshuffle). Generate once, e.g. `useState(() => ...)` as `Scenery.jsx` does. (Character art is rendered once and then posed by `tick` straight on the SVG attributes, not through React state.)
@@ -100,7 +101,7 @@ Deploys are automatic: `.github/workflows/deploy.yml` builds on every PR and, af
 - **Do not trigger a deploy (no manual workflow runs, no manual `rsync`) unless the user asks.** Merging to `main` is what deploys, so treat a merge as a production release.
 - Never print, log, commit or paste the secrets or the private key (`~/.ssh/countdown_deploy`, outside the repo). Do not put host details in files, commits or PR text. If you must reference them, use the secret names.
 - When changing the workflow, keep: actions pinned to full SHAs, `permissions: contents: read`, deploy only on `main`, pinned host key, the dry run, `--max-delete`, and the server-managed excludes. Test rsync flag changes against a local folder first. macOS ships `openrsync`, which lacks some flags (for example `--chmod`) that the Linux runner has.
-- `npm run deploy` (`scripts/deploy.sh`) is a manual fallback that only prints an `rsync --delete` command without those protections. Never run the real upload yourself without explicit approval, and do a dry run (`rsync -n`) first.
+- `npm run deploy` (`scripts/deploy.sh`) is a manual fallback. It only prints commands: a dry run and an upload with the same flags and excludes as CI (`--delete-after`, `--max-delete=50`, strict SSH host key checking), and it refuses unsafe paths. It sets permissions with `chmod` rather than `rsync --chmod`, which the openrsync that ships with macOS doesn't support. Never run the real upload yourself without explicit approval, and run the dry run first.
 
 ## Known issues
 

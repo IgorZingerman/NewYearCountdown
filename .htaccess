@@ -24,6 +24,20 @@
   RewriteRule . /index.html [L]
 </IfModule>
 
+# Security headers ("always" so redirects and error pages get them too).
+# The site only loads its own files, so the policy allows nothing from other sites.
+# 'unsafe-inline' is needed for scripts because the Next.js static export inlines its
+# page data in <script> tags, and for styles because the components use style attributes.
+<IfModule mod_headers.c>
+  # Browsers only accept this over HTTPS, and plain HTTP is redirected above.
+  Header always set Strict-Transport-Security "max-age=31536000"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+</IfModule>
+
 # Enable compression for better performance
 <IfModule mod_deflate.c>
   AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
