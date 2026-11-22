@@ -14,6 +14,7 @@ This directory contains comprehensive functional tests for the New Year Countdow
 - **terminalDimensions.test.js** - Tests for terminal dimension handling
 - **integration.test.js** - Integration tests for complete workflows
 - **utils.test.js** - Tests for utility functions and helpers
+- **defaultTargetDate.test.js** - Tests the real `getNextNewYear()` helper and the default target date (imports the actual code)
 
 ## Running Tests
 
