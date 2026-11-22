@@ -14,7 +14,7 @@ Read `AGENTS.md` first for conventions, the working agreement and known issues. 
 - [ ] 2. npm run lint && npm test
 - [ ] 3. Verify in the browser (below)
 - [ ] 4. npm run build (must succeed; static export)
-- [ ] 5. Commit on a branch, open a PR into main (main is protected)
+- [ ] 5. Commit on a branch, open a PR into main (main is protected). CI re-runs lint, tests and build on the PR; merging deploys
 ```
 
 Tests and the build do not exercise the visuals, so step 3 is required for any UI change.
@@ -48,6 +48,6 @@ To see the default date, clear the saved config first (step 5) and reload: it sh
 
 ## Don't
 
-- Don't deploy, push to `main`, or change GitHub settings unless the user asks. For deploys see the Deployment section of `AGENTS.md` (rsync `--delete` warning, dry run first).
+- Don't merge to `main`, trigger the deploy workflow, or change GitHub settings unless the user asks. A merge to `main` deploys to production automatically; see the Deployment section of `AGENTS.md`.
 - Don't commit `.env`, `audit.log`, hostnames, or credentials. The repo is public.
 - Don't add server-only features (API routes, middleware, server actions). The host is plain Apache serving a static export.
