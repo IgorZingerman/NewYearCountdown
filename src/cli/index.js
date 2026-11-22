@@ -6,6 +6,7 @@ import Spinner from "ink-spinner";
 import Gradient from "ink-gradient";
 import { exec, spawn } from "child_process";
 import config, { getNextNewYear } from "./config.js";
+import { SNOW_TICK_MS, DEFAULT_SNOW_SPEED, createFlake, moveFlake } from "./snow.js";
 
 // Custom hook to get terminal dimensions and update on resize
 const useTerminalDimensions = () => {
@@ -52,7 +53,7 @@ let COLOR_ROTATION_OPTIONS = [];
 let ENABLE_SNOWFLAKES = false;
 let SNOWFLAKE_COUNT = 50;
 let SNOWFLAKE_OPTIONS = ["❄", "❅", "❆", "✻", "✼", "✽", "✾", "✿", "❀", "❁"];
-let SNOWFLAKE_SPEED = 100; // Milliseconds between moves (faster for smooth falling)
+let SNOWFLAKE_SPEED = DEFAULT_SNOW_SPEED; // Milliseconds a flake takes to fall from top to bottom (bigger = slower)
 let SNOWFLAKE_COLOR = null; // Default color (null means white/default)
 let SNOWFLAKE_ROTATE_COLORS = false;
 let SNOWFLAKE_COLOR_ROTATION_FREQUENCY = 3; // Default color rotation frequency in seconds
@@ -189,9 +190,9 @@ try {
         const speed = Number(config.snowflakes.speed);
         if (speed > 0 && !isNaN(speed)) {
           SNOWFLAKE_SPEED = speed;
-          console.error(`[INFO] Snowflake speed set to ${SNOWFLAKE_SPEED}ms`);
+          console.error(`[INFO] Snowflakes take ${SNOWFLAKE_SPEED}ms to fall`);
         } else {
-          console.error(`[WARN] Invalid snowflakes.speed value "${config.snowflakes.speed}". Using default: 100ms`);
+          console.error(`[WARN] Invalid snowflakes.speed value "${config.snowflakes.speed}". Using default: ${DEFAULT_SNOW_SPEED}ms`);
         }
       }
       
@@ -340,12 +341,7 @@ const FallingSnowflakes = ({ enabled, count, characters, terminalWidth, terminal
   // Determine the color to use
   const displayColor = currentColor !== null ? currentColor : null;
   const [snowflakePositions, setSnowflakePositions] = useState(() => {
-    return Array.from({ length: Math.min(count, 200) }).map(() => ({
-      x: Math.floor(Math.random() * terminalWidth),
-      y: Math.floor(Math.random() * terminalHeight), // Start at random heights
-      fallSpeed: 0.1 + Math.random() * 0.3, // Slower fall speed for gentler movement
-      drift: (Math.random() - 0.5) * 0.1, // Reduced drift for smoother movement
-    }));
+    return Array.from({ length: Math.min(count, 200) }).map(() => createFlake(terminalWidth, terminalHeight));
   });
 
   useEffect(() => {
@@ -353,35 +349,12 @@ const FallingSnowflakes = ({ enabled, count, characters, terminalWidth, terminal
       return;
     }
 
-    // Use faster update interval for smoother animation
-    // Cap at 50ms for smooth updates, but adjust fall speed to maintain visual speed
-    const updateInterval = Math.min(speed, 50);
-    const speedMultiplier = speed / updateInterval; // Adjust fall speed to maintain same visual speed
-    
+    // The flakes move every SNOW_TICK_MS; how far depends on `speed` (the ms a flake takes to fall)
     const interval = setInterval(() => {
       setSnowflakePositions((prev) => {
-        return prev.map((pos) => {
-          // Multiply fall speed by speedMultiplier to maintain visual speed with faster updates
-          let newY = pos.y + (pos.fallSpeed * speedMultiplier);
-          let newX = pos.x + (pos.drift * speedMultiplier);
-
-          // When snowflake reaches bottom, reset to top at random x position
-          if (newY >= terminalHeight) {
-            newY = -1; // Start just above screen
-            newX = Math.floor(Math.random() * terminalWidth);
-          }
-
-          // Wrap around horizontally (snowflakes drift across screen)
-          if (newX < 0) {
-            newX = terminalWidth - 1;
-          } else if (newX >= terminalWidth) {
-            newX = 0;
-          }
-
-          return { ...pos, x: newX, y: newY };
-        });
+        return prev.map((flake) => moveFlake(flake, { width: terminalWidth, height: terminalHeight, speed }));
       });
-    }, updateInterval);
+    }, SNOW_TICK_MS);
 
     return () => clearInterval(interval);
   }, [enabled, count, characters, terminalWidth, terminalHeight, speed]);
