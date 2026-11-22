@@ -2,7 +2,13 @@
  * Tests for the moon phase maths (src/lib/moon.js). Checked against real
  * moon events (UTC) so they test reality, not just the code's own logic.
  */
-import { moonPhase, moonIllumination, moonGeometry, moonPhaseName } from '../lib/moon';
+import {
+  moonPhase,
+  moonPhaseForCountdown,
+  moonIllumination,
+  moonGeometry,
+  moonPhaseName,
+} from '../lib/moon';
 
 // The mean-month method is within about half a day, so 0.03 of a cycle (~0.9 days) is safe.
 const TOLERANCE = 0.03;
@@ -34,6 +40,49 @@ describe('moonPhase', () => {
     const a = moonPhase(new Date(start));
     const b = moonPhase(new Date(start + 29.530588853 * 86400000));
     expect(Math.min(Math.abs(a - b), 1 - Math.abs(a - b))).toBeLessThan(0.001);
+  });
+});
+
+describe('moonPhaseForCountdown', () => {
+  const DAY = 86400000;
+  const target = new Date(Date.UTC(2027, 0, 1));
+  const at = (daysBefore) => new Date(target.getTime() - daysBefore * DAY);
+
+  test('is a full moon at midnight', () => {
+    expect(moonPhaseForCountdown(target, target)).toBeCloseTo(0.5, 6);
+  });
+
+  test('stays full after midnight', () => {
+    expect(moonPhaseForCountdown(target, new Date(target.getTime() + 5 * DAY))).toBeCloseTo(0.5, 6);
+  });
+
+  test('is a half moon about a week out and a new moon about two weeks out', () => {
+    expect(moonPhaseForCountdown(target, at(29.530588853 / 4))).toBeCloseTo(0.25, 6);
+    const newMoon = moonPhaseForCountdown(target, at(29.530588853 / 2));
+    expect(Math.min(newMoon, 1 - newMoon)).toBeCloseTo(0, 6); // 0 and 1 are the same moment in the cycle
+  });
+
+  test('gets fuller every day as the countdown approaches (over the last two weeks)', () => {
+    let last = -1;
+    for (let d = 14; d >= 0; d--) {
+      const lit = moonIllumination(moonPhaseForCountdown(target, at(d)));
+      expect(lit).toBeGreaterThan(last);
+      last = lit;
+    }
+  });
+
+  test('accepts ISO strings, and returns null for a bad date', () => {
+    expect(moonPhaseForCountdown(target.toISOString(), target)).toBeCloseTo(0.5, 6);
+    expect(moonPhaseForCountdown('not a date')).toBeNull();
+    expect(moonPhaseForCountdown(undefined)).toBeNull();
+  });
+
+  test('is always between 0 (inclusive) and 1 (exclusive)', () => {
+    for (let d = 0; d < 400; d += 3.7) {
+      const p = moonPhaseForCountdown(target, at(d));
+      expect(p).toBeGreaterThanOrEqual(0);
+      expect(p).toBeLessThan(1);
+    }
   });
 });
 

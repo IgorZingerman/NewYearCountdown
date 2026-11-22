@@ -6,7 +6,7 @@ import { useAudio } from '../hooks/useAudio';
 import CountdownDisplay from '../components/CountdownDisplay';
 import Snowflakes from '../components/Snowflakes';
 import Fireworks from '../components/Fireworks';
-import Yeti from '../components/Yeti';
+import Characters from '../components/characters/Characters';
 import Scenery from '../components/Scenery';
 import Link from 'next/link';
 
@@ -41,10 +41,10 @@ export default function HomePage() {
       overflow: 'hidden',
     }}>
       {/* Background Scenery */}
-      <Scenery />
+      <Scenery targetDate={config.targetDate} />
 
-      {/* Yeti Character */}
-      <Yeti celebrating={countdown.isExpired} />
+      {/* The yeti and his friends */}
+      <Characters celebrating={countdown.isExpired} />
 
       {/* Snowflakes - stop when countdown expires */}
       {config.snowflakes?.enabled && !countdown.isExpired && (

@@ -1,10 +1,18 @@
 'use client';
 
-import { useState } from 'react';
-import { moonGeometry, moonIllumination, moonPhase, moonPhaseName } from '../lib/moon';
+import { useEffect, useState } from 'react';
+import {
+  moonGeometry,
+  moonIllumination,
+  moonPhase,
+  moonPhaseForCountdown,
+  moonPhaseName,
+} from '../lib/moon';
 
 /**
- * The moon, showing its real phase for the viewer's current date and time.
+ * The moon. Its phase follows the countdown: a crescent when New Year is far
+ * away, getting fuller every day and full at midnight (falls back to the real
+ * current phase if there is no valid target date).
  * The dark part is a faint earthshine disc, the lit part is a clipped shape
  * whose edge (the terminator) follows the phase, and craters only appear on
  * the lit side.
@@ -19,9 +27,20 @@ const CRATERS = [
   { x: 0.1, y: 0.6, r: 0.09 },
 ];
 
-export default function Moon({ size = 'clamp(56px, 7vw, 104px)', left = '11%', top = '9%' }) {
-  // Computed once on mount, so it is always the moon for the current time.
-  const [phase] = useState(() => moonPhase());
+function currentPhase(targetDate) {
+  return moonPhaseForCountdown(targetDate) ?? moonPhase();
+}
+
+export default function Moon({ targetDate, size = 'clamp(56px, 7vw, 104px)', left = '11%', top = '9%' }) {
+  const [phase, setPhase] = useState(() => currentPhase(targetDate));
+
+  // The phase moves slowly, so refreshing once a minute is plenty.
+  useEffect(() => {
+    setPhase(currentPhase(targetDate));
+    const id = window.setInterval(() => setPhase(currentPhase(targetDate)), 60000);
+    return () => window.clearInterval(id);
+  }, [targetDate]);
+
   const { waxing, u } = moonGeometry(phase);
   const lit = moonIllumination(phase);
 

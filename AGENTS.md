@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repo. Human-facing docs are in [RE
 
 ## What this is
 
-A New Year countdown website: Next.js 16 (App Router, React 18, JavaScript, no TypeScript), GSAP for animation, a `<canvas>` for fireworks. It is built as a **static export** and served by plain Apache (PHP-only shared hosting). A legacy Ink terminal version lives in `src/cli/`.
+A New Year countdown website: Next.js 16 (App Router, React 18, JavaScript, no TypeScript), GSAP and `<canvas>` for animation (the snow and the fireworks are canvases; the characters are SVG). It is built as a **static export** and served by plain Apache (PHP-only shared hosting). A legacy Ink terminal version lives in `src/cli/`.
 
 ## Commands
 
@@ -31,13 +31,15 @@ Run `npm run lint`, `npm test` and `npm run build` before proposing a PR. The le
 
 | Path | Purpose |
 | --- | --- |
-| `src/app/page.js` | Home page: composes scenery, yeti, snow, fireworks, countdown, settings link |
+| `src/app/page.js` | Home page: composes scenery, characters, snow, fireworks, countdown, settings link |
 | `src/app/settings/page.js` | Settings page (renders `SettingsForm`) |
 | `src/app/icon.svg` | Favicon (Next file convention) |
-| `src/components/` | `CountdownDisplay`, `Snowflakes`, `Yeti`, `Fireworks`, `Scenery`, `SettingsForm` |
+| `src/components/` | `CountdownDisplay`, `Snowflakes` (canvas snow), `Fireworks`, `Scenery`, `Moon`, `SettingsForm` |
+| `src/components/characters/` | The yeti and his friends: `Actor` (shared shell), one file per character, `Characters` (puts them on screen), `art.jsx` (shared look) |
 | `src/hooks/` | `useConfig` (load/save config), `useCountdown`, `useAudio` |
 | `src/lib/config.js` | `DEFAULT_CONFIG`, `getNextNewYear()`, `validateConfig`, load/save |
 | `src/lib/audio.js` | Web Speech announcements and the final-countdown music |
+| `src/lib/snow.js`, `moon.js`, `world.js`, `wander.js`, `pose.js`, `scene.js` | Pure logic (no DOM, unit tested): snow flakes and wind; moon phase; character lanes; walking and following; posing helpers; shared scenery layout |
 | `public/` | Static files copied as-is into the export. `public/music/` holds the (gitignored) audio |
 | `eslint.config.mjs` | ESLint flat config; documents why `react-hooks/set-state-in-effect` is off |
 | `src/__tests__/` | Jest tests |
@@ -49,11 +51,24 @@ All animated components are client components (`'use client'`) and must clean up
 
 ### Layering (z-index)
 
-Scenery `0-2` < Fireworks `5` < Yeti `6` < Snowflakes `10` < countdown `20` < settings link `30`. Keep new elements consistent with this.
+Scenery `0-3` < pine trees `4` < Fireworks `5` < Characters `6-9` (by lane, see below) < Snowflakes `10` < countdown `20` < settings link `30`. Keep new elements consistent with this.
 
 ### Midnight celebration
 
-`useCountdown` sets `isExpired`. `page.js` then stops the snow, mounts `<Fireworks />` and passes `celebrating` to `<Yeti />`. The yeti's walk and celebration both live in one effect keyed on `celebrating`.
+`useCountdown` sets `isExpired`. `page.js` then stops the snow, mounts `<Fireworks />` and passes `celebrating` to `<Characters />`. Each character reads `celebrating` and reacts in its own `tick`: the wanderers run to their own spot and jump with party hats, the snowman comes alive, the owl flaps. The moon is full at midnight (see below).
+
+### Characters
+
+Every character is an `Actor` (`src/components/characters/Actor.jsx`) plus two things the character file supplies:
+
+- **Art:** an SVG with parts marked `data-part="name"` (limbs, eyes, head...).
+- **Behaviour:** a factory `({ parts, world, api, reduced }) => ({ tick(dt, t, env), onClick })`. `tick` runs every frame, poses the parts (with `tf()` from `lib/pose.js`) and returns where to put the character: `{ x, bottomVh, scale, z, dir }`.
+
+`Actor` owns the placement, facing, the single animation loop, speech bubbles (`api.say`), hops and spins (`api.hop`) and the celebration jumping (`api.jumpLoop`). Characters stand on the snowy ground in **lanes**: `ground(depth)` in `lib/world.js` gives the height, size and z-index (back lane = higher, smaller, behind). Movement is pixel based and uses `u = innerHeight / 900` so it scales with the screen. The shared `world` object lets characters react to each other (the cub follows `world.yeti`). The owl and the snowman are static: the owl perches on a tree tip using the layout in `lib/scene.js`, shared with `Scenery.jsx`. To add a character: copy a similar one, add it to `Characters.jsx`, and add logic to the tested `lib/` files rather than inlining it.
+
+### Snow and moon
+
+The snow is one canvas (`Snowflakes.jsx` + `lib/snow.js`): soft white flakes in depth layers with sway, wind gusts and fading at the ground. Of the snow settings only `enabled`, `count` (a density) and `speed` (bigger = slower) apply; the glyph and colour settings are used only by the terminal version. The moon (`Moon.jsx` + `lib/moon.js`) follows the countdown: a crescent when New Year is far off, waxing at the real speed of the moon, and full at midnight.
 
 ## Conventions that matter
 
@@ -61,7 +76,7 @@ Scenery `0-2` < Fireworks `5` < Yeti `6` < Snowflakes `10` < countdown `20` < se
 - **Apache routing:** `next.config.js` sets `trailingSlash: true` so each page is `route/index.html`; without it `/settings` showed a raw directory listing on the host (Next's default `settings.html` is not found for `/settings`). `.htaccess` also returns 403 for folders without an `index.html` so file listings never appear. Test routing changes against a real Apache (for example the `httpd:2.4` Docker image with `AllowOverride All` and `Options Indexes`, using a copy of `.htaccess` without the HTTPS redirect), not just `next dev`.
 - **Static export constraints** (`output: 'export'` in `next.config.js`): no API routes, no server actions, no middleware, no runtime `next/image` optimization (`images.unoptimized` is set), no server-only code. Anything that needs a server will not work on the host. New pages become `route/index.html`; the `.htaccess` fallback serves the homepage for unknown paths.
 - **Static assets:** put them in `public/` (served from `/`). `public/music/*` is gitignored on purpose: the final-countdown track is copyrighted and the repo is public. Never commit audio files; the build still copies local ones into `out/`.
-- **Stable random values:** do not call `Math.random()` during render for visuals (the page re-renders every second and everything would reshuffle). Generate once, e.g. `useState(() => ...)` as `Scenery.jsx` does.
+- **Stable random values:** do not call `Math.random()` during render for visuals (the page re-renders every second and everything would reshuffle). Generate once, e.g. `useState(() => ...)` as `Scenery.jsx` does. (Character art is rendered once and then posed by `tick` straight on the SVG attributes, not through React state.)
 - **Legacy CLI (`src/cli/`):** built separately with Babel into `dist/cli/`, so it can't import from `src/lib` (it has its own `getNextNewYear` in `src/cli/config.js`).
 - **Config:** add new settings to `DEFAULT_CONFIG`, then `validateConfig`, then `SettingsForm`, then the consumer. Do not mutate `DEFAULT_CONFIG` (see Known issues).
 - **Tests:** Jest runs native ESM (`"type": "module"`, no transform). Prefer tests that import the real module (see `defaultTargetDate.test.js`) over ones that re-implement logic.

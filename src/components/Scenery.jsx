@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import Moon from './Moon';
+import { TREES, treeBottomVh } from '../lib/scene';
 
 /**
  * The night-time winter backdrop, back to front:
@@ -10,9 +11,9 @@ import Moon from './Moon';
  *   -> snowy ground -> pine trees (some with twinkling lights)
  *
  * Layout contract used by the characters and the snow:
- *   - the snowy ground fills the bottom ~26% of the screen (see HORIZON in
- *     src/lib/snow.js), so characters walk with their feet at ~4-14% from the
- *     bottom.
+ *   - the snowy ground fills the bottom ~27% of the screen (see HORIZON in
+ *     src/lib/snow.js), so characters walk with their feet at ~4-15% from the
+ *     bottom (see src/lib/world.js).
  *   - z-index: sky/mountains/ground 0-3, trees 4 (everything else sits above).
  */
 
@@ -29,18 +30,6 @@ function generateStars(count) {
 }
 
 const LIGHT_COLORS = ['#ff5a5a', '#ffd24a', '#5ad2ff', '#8dff6a', '#ff8de6'];
-
-// Trees along the horizon: x position (% of width), height (vh), lit or not.
-const TREES = [
-  { x: 4, h: 25, lit: true },
-  { x: 13, h: 16 },
-  { x: 21, h: 12 },
-  { x: 33, h: 10 },
-  { x: 63, h: 11 },
-  { x: 74, h: 15 },
-  { x: 85, h: 24, lit: true },
-  { x: 94, h: 17 },
-];
 
 // Three stacked tiers of a pine: [apexY, baseY, halfWidth] in a 60x100 box.
 const TIERS = [
@@ -95,7 +84,7 @@ function Pine({ lit, seed }) {
   );
 }
 
-export default function Scenery() {
+export default function Scenery({ targetDate }) {
   const rootRef = useRef(null);
   const shootingRef = useRef(null);
 
@@ -209,8 +198,8 @@ export default function Scenery() {
         ))}
       </div>
 
-      {/* Moon, showing its real phase */}
-      <Moon />
+      {/* Moon: full at midnight, a crescent when New Year is far away */}
+      <Moon targetDate={targetDate} />
 
       {/* Shooting star (positioned and animated from the effect above) */}
       <div
@@ -302,7 +291,7 @@ export default function Scenery() {
           style={{
             position: 'absolute',
             left: `${tree.x}%`,
-            bottom: `${19.5 - (i % 3) * 0.8}%`,
+            bottom: `${treeBottomVh(i)}%`,
             height: `${tree.h}vh`,
             width: `${tree.h * 0.6}vh`,
             transform: 'translateX(-50%)',

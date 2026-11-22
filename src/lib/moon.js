@@ -7,8 +7,9 @@
  *   0.5  full moon
  *   0.75 last quarter
  *
- * This uses the mean synodic month from a known new moon. It is accurate to
- * within about half a day, which is far finer than the moon's drawing here.
+ * moonPhase() is the real moon, using the mean synodic month from a known new
+ * moon (accurate to within about half a day). The site itself uses
+ * moonPhaseForCountdown(), which is lined up so the moon is full at midnight.
  */
 
 const SYNODIC_MONTH_DAYS = 29.530588853;
@@ -20,6 +21,21 @@ const REFERENCE_NEW_MOON_MS = Date.UTC(2000, 0, 6, 18, 14);
 export function moonPhase(date = new Date()) {
   const cycles = (date.getTime() - REFERENCE_NEW_MOON_MS) / MS_PER_DAY / SYNODIC_MONTH_DAYS;
   return ((cycles % 1) + 1) % 1;
+}
+
+/**
+ * Phase for the countdown: the moon waxes as New Year approaches and is full
+ * at midnight. It moves at the real speed of the moon (one cycle per ~29.5
+ * days), just lined up so the full moon lands on the target moment: roughly a
+ * new moon 15 days out, a half moon a week out. After midnight it stays full.
+ * Returns null if the target date is not valid.
+ */
+export function moonPhaseForCountdown(target, now = new Date()) {
+  const targetMs = target instanceof Date ? target.getTime() : new Date(target).getTime();
+  if (!Number.isFinite(targetMs)) return null;
+  const remainingDays = Math.max(0, targetMs - now.getTime()) / MS_PER_DAY;
+  const phase = 0.5 - remainingDays / SYNODIC_MONTH_DAYS;
+  return ((phase % 1) + 1) % 1;
 }
 
 /** Share of the moon's face that is lit, from 0 to 1. */

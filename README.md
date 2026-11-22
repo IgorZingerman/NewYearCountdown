@@ -2,16 +2,18 @@
 
 I saw this: https://github.com/coord-e/new-year-countdown/tree/master and i loved the idea. That repository has gone the way of the dodo, and is not supported. I figured I'd mess with this a bit. So, i spent a little bit of time and threw this together. 
 
-A festive New Year countdown website with falling snow, a cute waddling yeti, a mountain scene with twinkling stars, and a fireworks finale (with a very excited yeti) when the clock hits zero.
+A festive New Year countdown website: a moonlit snowy night with natural falling snow, a cosy yeti and his friends (a bear cub, a penguin, a bunny, a snowman and an owl) you can click, and a fireworks finale with a party when the clock hits zero.
 
 ## Features
 
 - ⏰ Live countdown to a target date (defaults to the next January 1st at your local midnight)
 - 🎨 Font and color rotation for the countdown display
-- ❄️ Falling snowflakes (GSAP), configurable count, speed, symbols and colors
-- 🦣 A yeti that waddles across the screen
-- 🎆 At zero: canvas fireworks, and the yeti runs to the center, throws his arms up and jumps
-- 🏔️ Mountain scenery with twinkling stars
+- ❄️ Natural snow on a canvas: soft flakes in depth layers, swaying, gusts of wind, a few crystals (amount and speed are configurable)
+- 🦣 A yeti in a beanie and scarf who wanders, looks around, waves and puffs his breath in the cold
+- 🐻‍❄️🐧🐰⛄🦉 His friends: a bear cub who follows him, a penguin who waddles and belly-slides, a bunny who hops, a snowman who comes alive at midnight, and an owl on a tree. Click any of them!
+- 🎆 At zero: canvas fireworks, and everyone gathers, puts on a party hat and jumps for joy
+- 🌙 A moon that waxes as New Year approaches and is full at midnight
+- 🏔️ Snowy mountains and ground, pine trees with twinkling lights, twinkling stars and shooting stars
 - 🔊 Spoken announcements (Web Speech API) at 1 hour, 20 minutes, 30 seconds, and the final 10 seconds, plus optional final-countdown music (see below)
 - ⚙️ Settings page (`/settings`), saved in your browser's `localStorage`
 
@@ -55,7 +57,7 @@ Settings are edited on the `/settings` page and stored in `localStorage` under `
 - Celebration message
 - Font selection and rotation
 - Countdown color and rotation
-- Snowflake count, speed, symbols and colors
+- Amount of snow and its speed (the symbol and colour options only apply to the terminal version)
 
 ## Final-countdown music (optional)
 
@@ -103,9 +105,10 @@ The `.htaccess` in the repo root handles HTTPS redirect and routing, and needs `
 ## Project structure
 
 - `src/app/` - Next.js App Router: `page.js` (countdown), `settings/` (settings page), `layout.js`, `icon.svg` (favicon)
-- `src/components/` - `CountdownDisplay`, `Snowflakes`, `Yeti`, `Fireworks`, `Scenery`, `SettingsForm`
+- `src/components/` - `CountdownDisplay`, `Snowflakes`, `Fireworks`, `Scenery`, `Moon`, `SettingsForm`
+- `src/components/characters/` - the yeti and his friends (`Actor` is the shared shell, one file per character)
 - `src/hooks/` - `useConfig`, `useCountdown`, `useAudio`
-- `src/lib/` - `config.js` (defaults and validation), `audio.js` (announcements)
+- `src/lib/` - `config.js` (defaults and validation), `audio.js` (announcements), and the tested logic for snow, moon, and character movement (`snow.js`, `moon.js`, `world.js`, `wander.js`, `pose.js`, `scene.js`)
 - `src/cli/` - the original terminal (Ink) version, kept for reference (`npm run build:cli && npm run start:cli`)
 - `public/` - static files copied as-is into the export (e.g. `public/music/`)
 - `src/__tests__/` - Jest tests
