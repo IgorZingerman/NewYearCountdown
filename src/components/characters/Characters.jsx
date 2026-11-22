@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Yeti from './Yeti';
 import BearCub from './BearCub';
 import Penguin from './Penguin';
 import Bunny from './Bunny';
 import Snowman from './Snowman';
 import Owl from './Owl';
+import { createWorld } from '../../lib/world';
 
 /**
  * The yeti and his friends. They share a `world` object so they can react to
@@ -14,13 +15,16 @@ import Owl from './Owl';
  * the countdown ends: the wanderers run to their spots, the snowman comes
  * alive and the owl flaps.
  *
- * Click any of them to make them react. See Actor.jsx for how a character is
+ * They also chat among themselves now and then, wander off-screen (the penguin
+ * and bunny), and the owl flies between trees. Click any of them to make them react. See Actor.jsx for how a character is
  * put together.
  */
-export default function Characters({ celebrating }) {
-  const [world] = useState(() => ({
-    yeti: { x: 0, dir: 1, depth: 0.5, moving: false },
-  }));
+export default function Characters({ celebrating, hoursLeft = null }) {
+  const [world] = useState(createWorld);
+
+  useEffect(() => {
+    world.setHoursLeft(hoursLeft);
+  }, [world, hoursLeft]);
 
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 6, pointerEvents: 'none' }}>

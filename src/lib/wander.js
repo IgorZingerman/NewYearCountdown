@@ -48,12 +48,20 @@ export function createWanderer(rand = Math.random) {
     targetX: 0,
     targetDepth: 0.5,
     tripLen: 0,
+    leaving: false, // walking off-screen
+    offscreen: false, // currently out of sight, waiting to come back
   };
 }
 
 /**
  * Advance a wanderer by dt. Returns true while it is walking.
- * opts: { minX, maxX, maxSpeed, accel, rand, idleRange, minTrip, slowRadius }
+ * opts: { minX, maxX, maxSpeed, accel, rand, idleRange, minTrip, slowRadius, edge }
+ *
+ * `edge` is optional and lets the character wander off-screen now and then:
+ *   { chance, left, right, awayRange }
+ * `chance` is the odds that a trip heads off-screen, `left` and `right` are x
+ * positions just outside the screen, and `awayRange` is how many seconds it
+ * stays out of sight. When it comes back it may re-enter from the other side.
  */
 export function stepWander(w, m, dt, opts) {
   const {
@@ -65,16 +73,31 @@ export function stepWander(w, m, dt, opts) {
     idleRange = [1.5, 5],
     minTrip = 150,
     slowRadius = 120,
+    edge = null,
   } = opts;
 
   if (w.mode === 'idle') {
     brake(m, dt, accel);
     w.wait -= dt;
     if (w.wait <= 0) {
-      // Pick somewhere that is worth walking to, if the room allows it.
-      let target = lerp(minX, maxX, rand());
-      for (let i = 0; i < 6 && Math.abs(target - m.x) < minTrip; i++) {
+      if (w.offscreen) {
+        // Coming back. While out of sight it may switch sides, then walks in.
+        if (edge && rand() < 0.5) m.x = m.x < minX ? edge.right : edge.left;
+        m.vx = 0;
+        m.dir = m.x < minX ? 1 : -1;
+        w.offscreen = false;
+      }
+      let target;
+      if (edge && !w.offscreen && m.x >= minX - 1 && m.x <= maxX + 1 && rand() < edge.chance) {
+        // Head off-screen through either edge.
+        target = rand() < 0.5 ? edge.left : edge.right;
+        w.leaving = true;
+      } else {
+        // Pick somewhere that is worth walking to, if the room allows it.
         target = lerp(minX, maxX, rand());
+        for (let i = 0; i < 6 && Math.abs(target - m.x) < minTrip; i++) {
+          target = lerp(minX, maxX, rand());
+        }
       }
       w.targetX = target;
       w.tripLen = Math.abs(target - m.x);
@@ -84,13 +107,25 @@ export function stepWander(w, m, dt, opts) {
     return false;
   }
 
-  const arrived = moveToward(m, w.targetX, dt, { maxSpeed, accel, slowRadius });
+  // Don't ease off near an off-screen target: it should walk out of sight at pace.
+  const arrived = moveToward(m, w.targetX, dt, {
+    maxSpeed,
+    accel,
+    slowRadius: w.leaving ? 20 : slowRadius,
+  });
   // Drift between lanes while walking, so paths cross naturally.
   const maxDrift = 0.1 * dt;
   m.depth += clamp(w.targetDepth - m.depth, -maxDrift, maxDrift);
   if (arrived) {
     w.mode = 'idle';
-    w.wait = lerp(idleRange[0], idleRange[1], rand());
+    if (w.leaving && edge) {
+      w.leaving = false;
+      w.offscreen = true;
+      const away = edge.awayRange ?? [6, 18];
+      w.wait = lerp(away[0], away[1], rand());
+    } else {
+      w.wait = lerp(idleRange[0], idleRange[1], rand());
+    }
     return false;
   }
   return true;

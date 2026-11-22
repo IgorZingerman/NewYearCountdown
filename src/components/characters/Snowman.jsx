@@ -88,6 +88,18 @@ function Art() {
 
 const LINES = ['Hello!', "I'm not melting!", 'Hug me?', 'Nice hat, right?', 'Brrr... perfect!'];
 
+// Things he says on his own (he's been standing here a while)
+const CHATTER = [
+  "I'm not melting!",
+  'Nice hat, right?',
+  'Stay frosty!',
+  'Is it spring yet? No thanks!',
+  'Nice night for standing!',
+  'I can see everything from here!',
+  "Don't lean on me!",
+];
+const CELEBRATE = ['I can move! I can MOVE!', 'Happy New Year!', 'Woohoo!', 'Hooray!', 'Cheers!'];
+
 function createSnowman({ parts, api }) {
   const rand = Math.random;
   const blink = createBlinker(rand, [1.5, 3.5]);
@@ -97,6 +109,8 @@ function createSnowman({ parts, api }) {
   const set = (name, value) => parts[name]?.setAttribute('transform', value);
 
   return {
+    talk: { lines: CHATTER, celebrate: CELEBRATE },
+
     onClick() {
       api.say(LINES[Math.floor(rand() * LINES.length)]);
       hatT = 1.5;

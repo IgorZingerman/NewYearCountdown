@@ -26,5 +26,18 @@ export function treeTipVh(i) {
   return treeBottomVh(i) + TREES[i].h * 0.96;
 }
 
-// The owl perches on the tip of this tree (an unlit one on the right).
-export const OWL_TREE = 5;
+/**
+ * Trees the owl can perch on: the unlit ones (the lit ones have a star on the
+ * tip). Indices into TREES.
+ */
+export const PERCHES = TREES.map((t, i) => (t.lit ? -1 : i)).filter((i) => i >= 0);
+
+/** Where the owl sits on perch number `p` (an index into PERCHES), for a screen `width` px wide. */
+export function perchSpot(p, width) {
+  const tree = PERCHES[p];
+  // The feet sit just below the very tip so the owl looks perched, not floating.
+  return { x: (TREES[tree].x / 100) * width, vh: treeTipVh(tree) - 0.4 };
+}
+
+// The owl starts on this perch (an index into PERCHES).
+export const OWL_START_PERCH = PERCHES.indexOf(5);

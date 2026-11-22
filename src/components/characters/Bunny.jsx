@@ -69,6 +69,10 @@ function Art({ celebrating }) {
 
 const LINES = ['Boing!', 'Hop hop!', '*sniff sniff*', 'Carrots?', 'Wheee!'];
 
+// Things it says on its own
+const CHATTER = ['*twitch twitch*', 'Carrots? Anyone?', 'Hop hop hop!', 'Too cold for me!', 'Boing!', 'Did you hear that?', 'Cold nose!'];
+const CELEBRATE = ['Happy New Year!', 'Woohoo!', 'Hooray!', 'We did it!', 'Cheers!'];
+
 function createBunny({ parts, api, reduced }) {
   const rand = Math.random;
   const m = createMover(window.innerWidth * (0.2 + rand() * 0.5), 0.8);
@@ -83,6 +87,8 @@ function createBunny({ parts, api, reduced }) {
   const set = (name, value) => parts[name]?.setAttribute('transform', value);
 
   return {
+    talk: { lines: CHATTER, celebrate: CELEBRATE },
+
     onClick() {
       api.say(LINES[Math.floor(rand() * LINES.length)]);
       api.hop({ height: 0.34, spin: 0 });
@@ -115,6 +121,8 @@ function createBunny({ parts, api, reduced }) {
           idleRange: [1, 3.5],
           minTrip: 100,
           slowRadius: 110 * u,
+          // Now and then it hops off-screen for a while.
+          edge: { chance: 0.2, left: -(env.w * 0.7 + 30), right: env.W + env.w * 0.7 + 30, awayRange: [6, 16] },
         });
       }
       const place = { ...ground(m.depth), x: m.x, dir: m.dir };

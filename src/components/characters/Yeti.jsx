@@ -128,6 +128,19 @@ function Art() {
 
 const LINES = ['Happy New Year!', 'Brrr, so cold!', 'Hi there!', 'Snow day!', 'Ready for midnight?', 'Look, snow!'];
 
+// Things he says on his own
+const CHATTER = [
+  'Is it midnight yet?',
+  'I love snow!',
+  'Anyone seen my mittens?',
+  'Brrr... lovely!',
+  'Hello, moon!',
+  'Any New Year resolutions?',
+  'Snowball fight later?',
+  'My feet are cold!',
+];
+const CELEBRATE = ['Happy New Year!', 'Woohoo!', 'Hooray!', 'We did it!', 'Cheers!'];
+
 function createYeti({ parts, world, api, reduced }) {
   const rand = Math.random;
   const m = createMover(window.innerWidth * (0.3 + rand() * 0.4), 0.55);
@@ -147,6 +160,8 @@ function createYeti({ parts, world, api, reduced }) {
   const set = (name, value) => parts[name]?.setAttribute('transform', value);
 
   return {
+    talk: { lines: CHATTER, celebrate: CELEBRATE },
+
     onClick() {
       api.say(LINES[Math.floor(rand() * LINES.length)]);
       api.hop({ height: 0.14, spin: 0 });

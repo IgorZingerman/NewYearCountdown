@@ -72,6 +72,10 @@ function Art({ celebrating }) {
 
 const LINES = ['Honk!', 'Honk honk!', 'Slide time!', 'Brrr!', 'Noot noot!'];
 
+// Things it says on its own
+const CHATTER = ['Noot noot!', 'Anyone got fish?', 'Slide time!', 'Penguin power!', 'Hee hee!', 'Waddle waddle!', 'Perfect sliding snow!'];
+const CELEBRATE = ['Happy New Year!', 'Woohoo!', 'Hooray!', 'We did it!', 'Cheers!'];
+
 function createPenguin({ parts, api, reduced }) {
   const rand = Math.random;
   const m = createMover(window.innerWidth * (0.55 + rand() * 0.3), 0.3);
@@ -88,6 +92,8 @@ function createPenguin({ parts, api, reduced }) {
   const set = (name, value) => parts[name]?.setAttribute('transform', value);
 
   return {
+    talk: { lines: CHATTER, celebrate: CELEBRATE },
+
     onClick() {
       api.say(LINES[Math.floor(rand() * LINES.length)]);
       api.hop({ height: 0.16 });
@@ -120,6 +126,8 @@ function createPenguin({ parts, api, reduced }) {
           rand,
           idleRange: [1.5, 4],
           slowRadius: (sliding ? 260 : 80) * u,
+          // Now and then it wanders off-screen for a while.
+          edge: { chance: 0.22, left: -(env.w * 0.7 + 30), right: env.W + env.w * 0.7 + 30, awayRange: [8, 20] },
         });
         if (wander.mode === 'idle') sliding = false;
       }

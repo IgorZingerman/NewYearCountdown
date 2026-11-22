@@ -44,7 +44,7 @@ export default function HomePage() {
       <Scenery targetDate={config.targetDate} />
 
       {/* The yeti and his friends */}
-      <Characters celebrating={countdown.isExpired} />
+      <Characters celebrating={countdown.isExpired} hoursLeft={countdown.total > 0 ? countdown.hours : null} />
 
       {/* Snowflakes - stop when countdown expires */}
       {config.snowflakes?.enabled && !countdown.isExpired && (

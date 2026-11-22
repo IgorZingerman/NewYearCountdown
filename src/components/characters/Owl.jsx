@@ -3,12 +3,14 @@
 import Actor from './Actor';
 import { INK, OUTLINE, PartyHat, line } from './art';
 import { createBlinker, createInterval, tf } from '../../lib/pose';
-import { OWL_TREE, TREES, treeTipVh } from '../../lib/scene';
+import { flightDuration, flightPoint, pickPerch } from '../../lib/flight';
+import { OWL_START_PERCH, PERCHES, perchSpot } from '../../lib/scene';
 
 /**
- * An owl perched on the tip of a pine tree. It blinks slowly, turns its head
- * to look around, and when clicked it fluffs up and hoots. At midnight it
- * flaps its wings and hops about on its branch.
+ * An owl that lives in the pine trees. It blinks slowly, turns its head to
+ * look around, and every so often flies in an arc to another tree. Click it and
+ * it hoots, then flies off. At midnight it stays put on its tree, flapping
+ * and hopping about.
  */
 
 const VIEW_BOX = '0 0 60 70';
@@ -73,6 +75,21 @@ function Art({ celebrating }) {
 
 const LINES = ['Hoo hoo!', 'Who? Who?', 'Hoot!', 'Midnight soon!'];
 
+// Things it says on its own
+const CHATTER = [
+  "Hoo's up?",
+  'Hoo hoo!',
+  'I saw that!',
+  'Wise tip: stay warm!',
+  'Best view in town!',
+  'Time flies... so do I!',
+  'Who? Who?',
+];
+const CELEBRATE = ['Happy New Year!', 'Hoo-ray!', 'Woohoo!', 'Cheers!', 'What a night!'];
+
+const TAKEOFF_SECONDS = 0.35;
+const LANDING_SECONDS = 0.4;
+
 function createOwl({ parts, api, reduced }) {
   const rand = Math.random;
   const blink = createBlinker(rand, [2.5, 6]);
@@ -80,60 +97,120 @@ function createOwl({ parts, api, reduced }) {
 
   let look = { t: 0, dur: 0, dir: 1 };
   let puffT = 0;
-  let wasCelebrating = false;
+  let wasJumping = false;
+
+  // Flight: perched -> takeoff -> flying -> landing -> perched
+  let state = 'perched';
+  let stateT = 0;
+  let perch = OWL_START_PERCH; // index into PERCHES
+  let target = perch;
+  let perchLeft = 6 + rand() * 8; // seconds until it flies somewhere else
+  let flight = { from: null, to: null, duration: 1 };
+  let dir = 1;
 
   const set = (name, value) => parts[name]?.setAttribute('transform', value);
-  // The tree's tip, in vh above the bottom of the screen: the owl's feet sit there.
-  const feetVh = treeTipVh(OWL_TREE) - 0.4;
 
   return {
+    talk: { lines: CHATTER, celebrate: CELEBRATE },
+
     onClick() {
       api.say(LINES[Math.floor(rand() * LINES.length)]);
-      api.hop({ height: 0.1 });
       puffT = 1.2;
+      if (state === 'perched') {
+        api.hop({ height: 0.1 });
+        perchLeft = Math.min(perchLeft, 0.9); // startled: it flies off soon
+      }
     },
 
     tick(dt, t, env) {
       const alive = env.celebrating;
-      if (alive !== wasCelebrating) {
-        wasCelebrating = alive;
-        api.jumpLoop(alive, { height: 0.12 });
+      stateT += dt;
+
+      // Where it is sitting right now (recomputed so it follows window resizes)
+      const here = perchSpot(perch, env.W);
+
+      // Time to go somewhere? Not once the party has started.
+      if (state === 'perched') {
+        if (!alive) perchLeft -= dt;
+        if (perchLeft <= 0 && !alive && !reduced) {
+          target = pickPerch(PERCHES.length, perch, rand);
+          state = 'takeoff';
+          stateT = 0;
+        }
+      } else if (state === 'takeoff' && stateT >= TAKEOFF_SECONDS) {
+        const from = perchSpot(perch, env.W);
+        const to = perchSpot(target, env.W);
+        flight = { from, to, duration: flightDuration(Math.abs(to.x - from.x), env.W) };
+        dir = to.x >= from.x ? 1 : -1;
+        state = 'flying';
+        stateT = 0;
+      } else if (state === 'flying' && stateT >= flight.duration) {
+        perch = target;
+        state = 'landing';
+        stateT = 0;
+      } else if (state === 'landing' && stateT >= LANDING_SECONDS) {
+        state = 'perched';
+        stateT = 0;
+        perchLeft = 8 + rand() * 14;
       }
 
-      // Turn the head to look around now and then
-      if (!alive && look.t <= 0 && lookAround.step(dt)) {
+      // Only jump for joy while sitting on a tree
+      const jumping = alive && state === 'perched';
+      if (jumping !== wasJumping) {
+        wasJumping = jumping;
+        api.jumpLoop(jumping, { height: 0.12 });
+      }
+
+      // Position: on the perch, or along the arc between two perches
+      let x = here.x;
+      let vh = here.vh;
+      let lean = 0;
+      if (state === 'flying') {
+        const u = stateT / flight.duration;
+        const p = flightPoint(flight.from, flight.to, u, env.W);
+        x = p.x;
+        vh = p.vh;
+        lean = dir * Math.sin(Math.PI * u) * 12; // leans into the flight
+      } else if (state === 'takeoff') {
+        // crouch before the leap
+        vh -= Math.sin((stateT / TAKEOFF_SECONDS) * Math.PI) * 0.4;
+      }
+
+      // Turn the head to look around now and then (only when sitting still)
+      const sitting = state === 'perched';
+      if (sitting && !alive && look.t <= 0 && lookAround.step(dt)) {
         look = { t: 2.4, dur: 2.4, dir: rand() < 0.5 ? -1 : 1 };
       }
+      if (!sitting) look.t = 0;
       look.t = Math.max(0, look.t - dt);
       const turn = look.t > 0 ? Math.sin(((look.dur - look.t) / look.dur) * Math.PI) * look.dir : 0;
 
       set('head', tf({ rot: turn * 14 + Math.sin(t * 0.7) * 1.5, px: 30, py: 38 }));
-      const shift = turn * 3;
+      const shift = state === 'flying' ? 2 : turn * 3; // eyes on where it is going
       set('pupilL', tf({ x: shift }));
       set('pupilR', tf({ x: shift }));
 
       // Slow, sleepy blink: the lids drop from the top of each eye
-      const closed = blink.step(dt);
+      const closed = sitting ? blink.step(dt) : 0;
       for (const [side, cx] of [['L', 21.5], ['R', 38.5]]) {
         set(`lid${side}`, tf({ px: cx, py: 15.5, sy: Math.max(0.0001, closed) }));
       }
 
-      // Flap at midnight; fluff up when clicked
+      // Wings: a lazy shuffle when perched; big flaps in the air, at midnight, or when startled
       puffT = Math.max(0, puffT - dt);
       const puff = puffT > 0 ? Math.sin((puffT / 1.2) * Math.PI) * 0.1 : 0;
       let wing = 3 + Math.sin(t * 1.4) * 1.5;
-      if (alive || puffT > 0) wing = 22 + Math.sin(t * 26) * 20;
+      if (state === 'flying') wing = 38 + Math.sin(t * 24) * 34;
+      else if (state === 'takeoff' || state === 'landing') wing = 30 + Math.sin(t * 30) * 28;
+      else if (alive || puffT > 0) wing = 22 + Math.sin(t * 26) * 20;
       set('wingL', tf({ rot: wing, px: 14, py: 34 }));
       set('wingR', tf({ rot: -wing, px: 46, py: 34 }));
-      set('root', tf({ px: 30, py: 66, sx: 1 + puff, sy: 1 + puff, rot: reduced ? 0 : Math.sin(t * 0.5) * 0.8 }));
+      set(
+        'root',
+        tf({ px: 30, py: 66, rot: lean + (reduced ? 0 : Math.sin(t * 0.5) * 0.8), sx: 1 + puff, sy: 1 + puff })
+      );
 
-      return {
-        x: (TREES[OWL_TREE].x / 100) * env.W,
-        bottomVh: feetVh,
-        scale: 1,
-        z: 7,
-        dir: 1,
-      };
+      return { x, bottomVh: vh, scale: 1, z: 7, dir };
     },
   };
 }

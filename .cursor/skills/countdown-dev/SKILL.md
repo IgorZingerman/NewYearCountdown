@@ -23,7 +23,7 @@ Tests and the build do not exercise the visuals, so step 3 is required for any U
 
 1. Start the server in the background: `npm run dev` (port 3000).
 2. Open `http://localhost:3000`, take a screenshot, and check the browser console for errors and warnings (there should be none).
-3. For a normal countdown the page should show: the time, "Until <date>", soft falling snow, the moon (a crescent when New Year is far off), snowy mountains and ground with pine trees, the yeti walking with the cub behind him, the penguin, bunny and snowman, and the owl on its tree. Click characters (`element.click()` on each `[style*="will-change"]`): each shows a speech bubble. (The bubble lasts about 2 seconds, so the screenshot tool can miss it. Force it visible with a style override to look at it.)
+3. For a normal countdown the page should show: the time, "Until <date>", soft falling snow, the moon (a crescent when New Year is far off), snowy mountains and ground with pine trees, the yeti walking with the cub behind him, the penguin, bunny and snowman, and the owl on a tree. Left alone for a minute they should also speak unprompted (about "N days to go" now and then), the owl should fly between the unlit trees, and the penguin or bunny may walk off one edge and come back. Click characters (`element.click()` on each `[style*="will-change"]`): each shows a speech bubble. (The bubble lasts about 2 seconds, so the screenshot tool can miss it. Force it visible with a style override to look at it.)
 4. **Midnight celebration:** set the target about 10 seconds ahead, then wait about 12 seconds:
 
    ```js

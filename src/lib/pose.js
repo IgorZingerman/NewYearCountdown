@@ -42,11 +42,12 @@ export function createBlinker(rand = Math.random, gap = [2, 6]) {
 }
 
 /**
- * A repeating one-shot timer: step(dt) returns true each time `every` seconds
- * (random within the range) have passed.
+ * A repeating timer: step(dt) returns true each time a random number of
+ * seconds within `range` has passed. `first` is the range for the very first
+ * wait (defaults to `range`).
  */
-export function createInterval(range, rand = Math.random) {
-  let left = lerp(range[0], range[1], rand());
+export function createInterval(range, rand = Math.random, first = range) {
+  let left = lerp(first[0], first[1], rand());
   return {
     step(dt) {
       left -= dt;

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
+import { canSpeak, countdownRemark, pickLine, speechDuration } from '../../lib/chatter';
 
 /**
  * Shared shell for every character. It owns the parts that are the same for
@@ -21,6 +22,10 @@ import { gsap } from 'gsap';
  *   api:   { say(text), hop({height, spin}), jumpLoop(on, {height}) }
  *   tick:  runs every frame, poses the parts, and returns where to put the
  *          character: { x, bottomVh, scale, z, dir } (x is its centre in px)
+ *   talk:  optional { lines, celebrate }: things to say on its own now and
+ *          then, and things to say once the countdown ends. Actor does the
+ *          timing: at random, only while on screen, and never while someone
+ *          else is talking (world.lastSpeechAt) so bubbles don't pile up.
  *   env:   { W, H, u, w, h, celebrating, reduced } where u = H / 900 is a unit
  *          scale so speeds and sizes follow the screen size
  */
@@ -57,8 +62,9 @@ export default function Actor({ viewBox, width, behavior, world, celebrating, ch
 
     const api = {
       /** Show a speech bubble for a moment. */
-      say(text, ms = 1900) {
+      say(text, ms = speechDuration(text)) {
         bubble.textContent = text;
+        world.lastSpeechAt = performance.now() / 1000;
         if (bubbleTl) bubbleTl.kill();
         bubbleTl = gsap
           .timeline()
@@ -119,6 +125,11 @@ export default function Actor({ viewBox, width, behavior, world, celebrating, ch
     let last = null;
     let time = 0;
 
+    // Talking on its own
+    let nextSayAt = 5 + Math.random() * 20;
+    let lastLine = null;
+    let wasCelebrating = false;
+
     function frame(now) {
       // dt is never negative (the very first frame can arrive "before" the start
       // time) and is capped so a background tab coming back doesn't teleport anyone.
@@ -130,6 +141,30 @@ export default function Actor({ viewBox, width, behavior, world, celebrating, ch
       const H = window.innerHeight;
       const env = { W, H, u: H / 900, w, h, celebrating: celebratingRef.current, reduced };
       const place = brain.tick(dt, time, env);
+
+      // Say something now and then (a different range once the party starts).
+      if (brain.talk) {
+        if (env.celebrating !== wasCelebrating) {
+          wasCelebrating = env.celebrating;
+          nextSayAt = time + (env.celebrating ? 2 + Math.random() * 4 : 15 + Math.random() * 25);
+        }
+        if (time >= nextSayAt) {
+          const nowSeconds = now / 1000;
+          if (canSpeak({ now: nowSeconds, lastSpeechAt: world.lastSpeechAt ?? -Infinity, x: place.x, width: W })) {
+            const lines = env.celebrating ? brain.talk.celebrate : brain.talk.lines;
+            const remark = env.celebrating ? null : countdownRemark(world.hoursLeft);
+            const line = pickLine(lines, { remark, last: lastLine });
+            if (line) {
+              api.say(line);
+              lastLine = line;
+            }
+            const range = env.celebrating ? [6, 12] : [25, 60];
+            nextSayAt = time + range[0] + Math.random() * (range[1] - range[0]);
+          } else {
+            nextSayAt = time + 1.5; // someone else is talking, or out of sight: try again soon
+          }
+        }
+      }
 
       const bottomPx = (place.bottomVh / 100) * H;
       outer.style.transform = `translate3d(${(place.x - w / 2).toFixed(1)}px, ${(-bottomPx).toFixed(1)}px, 0) scale(${place.scale.toFixed(3)})`;

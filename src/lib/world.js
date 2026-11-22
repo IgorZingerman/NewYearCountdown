@@ -28,3 +28,18 @@ export function ground(depth) {
     z: 6 + Math.round(d * 3),
   };
 }
+
+/**
+ * State shared by all characters, so they can react to each other and to the
+ * countdown. Created once by <Characters />.
+ */
+export function createWorld() {
+  return {
+    yeti: { x: 0, dir: 1, depth: 0.5, moving: false }, // the cub follows him
+    hoursLeft: null, // lets them remark on how long is left
+    lastSpeechAt: -Infinity, // seconds; so only one of them talks at a time
+    setHoursLeft(hours) {
+      this.hoursLeft = hours;
+    },
+  };
+}

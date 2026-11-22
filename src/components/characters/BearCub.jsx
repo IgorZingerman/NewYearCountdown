@@ -84,6 +84,10 @@ function Art({ celebrating }) {
 
 const LINES = ['Rawr!', 'Hehe!', 'Snacks?', 'Wheee!', 'Follow me!'];
 
+// Things it says on its own
+const CHATTER = ['*sniff sniff*', 'Wait for me!', 'I smell fish!', 'Snow tastes good!', 'Hehe...', 'Where are we going?', 'Piggyback?'];
+const CELEBRATE = ['Happy New Year!', 'Woohoo!', 'Hooray!', 'We did it!', 'Cheers!'];
+
 function createCub({ parts, world, api, reduced }) {
   const rand = Math.random;
   const m = createMover(window.innerWidth * 0.3, 0.65);
@@ -97,6 +101,8 @@ function createCub({ parts, world, api, reduced }) {
   const set = (name, value) => parts[name]?.setAttribute('transform', value);
 
   return {
+    talk: { lines: CHATTER, celebrate: CELEBRATE },
+
     onClick() {
       api.say(LINES[Math.floor(rand() * LINES.length)]);
       api.hop({ height: 0.22, spin: -360 }); // a somersault

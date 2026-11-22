@@ -10,7 +10,7 @@ A festive New Year countdown website: a moonlit snowy night with natural falling
 - 🎨 Font and color rotation for the countdown display
 - ❄️ Natural snow on a canvas: soft flakes in depth layers, swaying, gusts of wind, a few crystals (amount and speed are configurable)
 - 🦣 A yeti in a beanie and scarf who wanders, looks around, waves and puffs his breath in the cold
-- 🐻‍❄️🐧🐰⛄🦉 His friends: a bear cub who follows him, a penguin who waddles and belly-slides, a bunny who hops, a snowman who comes alive at midnight, and an owl on a tree. Click any of them!
+- 🐻‍❄️🐧🐰⛄🦉 His friends: a bear cub who follows him, a penguin who waddles and belly-slides, a bunny who hops, a snowman who comes alive at midnight, and an owl who flies from tree to tree. They chat on their own (sometimes about how long is left), the penguin and bunny occasionally wander off-screen and come back, and you can click any of them!
 - 🎆 At zero: canvas fireworks, and everyone gathers, puts on a party hat and jumps for joy
 - 🌙 A moon that waxes as New Year approaches and is full at midnight
 - 🏔️ Snowy mountains and ground, pine trees with twinkling lights, twinkling stars and shooting stars
